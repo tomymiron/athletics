@@ -12,7 +12,8 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.tomymiron.athletics"
     },
     "android": {
       "adaptiveIcon": {
@@ -22,6 +23,11 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "f4358d4e-237b-457b-9ead-6cdf113fc18a"
+      }
     }
   }
 }
