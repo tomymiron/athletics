@@ -1,15 +1,13 @@
 import { StyleSheet, Text, View, TouchableWithoutFeedback, TouchableOpacity } from "react-native";
+import { useNavigation, useIsFocused } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import React, { useState, useEffect, useRef } from "react";
-import { useNavigation } from "@react-navigation/native";
+import { getData } from "../constants/dataExchange.jsx";
 import { COLORS, SIZES } from "../constants/theme.js";
 import { Accelerometer } from "expo-sensors";
+import * as SQLite from "expo-sqlite";
 import Icon from "../constants/Icon.jsx";
 import { Audio } from "expo-av";
-
-
-import { getData } from "../constants/dataExchange.jsx";
-
 
 export default function StartPractice() {
   const [reactionTime, setReactionTime] = useState(null);
@@ -18,7 +16,10 @@ export default function StartPractice() {
   const [isRacing, setIsRacing] = useState(false);
   const [isFalse, setIsFalse] = useState(false);
   const [status, setStatus] = useState(0);
+  const [config, setConfig] = useState({});
+  const db = SQLite.useSQLiteContext();
   const insets = useSafeAreaInsets();
+  const isFocused = useIsFocused();
 
   const intervalIdRef = useRef(null); 
   const startTimeRef = useRef(null); 
@@ -27,6 +28,49 @@ export default function StartPractice() {
   const timeoutShotRef = useRef(null);
   const timeoutSetRef = useRef(null); 
   const navigation = useNavigation();
+
+  const [amountAttemps, setAmountAttemps] = useState(0);
+  const [aspectFalseAttemps, setAspectFalseAttemps] = useState(100);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const data = await getData("practiceConfig");
+
+        if (data == undefined) {
+          await storeData("practiceConfig", JSON.stringify(defaultConfig));
+        } else {
+          const parsedConfig = JSON.parse(data);
+          setConfig(parsedConfig);
+        }
+      } catch (e) {
+        console.log("Error al obtener los datos", e);
+        setConfig({
+          voice: {
+            lenguage: 1,
+            variant: 1,
+          },
+          times: {
+            onYourMarksTimeMin: 2,
+            onYourMarksTimeMax: 5,
+            setTimeMin: 1,
+            setTimeMax: 3,
+          },
+        });
+      }
+    };
+
+    const getStats = async () => {
+      const totalAmountAttemps = await db.getFirstAsync(`SELECT count(id) as "amount" FROM practice_attempts`,);
+      const notFalseAmountAttemps = await db.getFirstAsync(`SELECT COUNT(id) as "notFalseCount" FROM practice_attempts WHERE time != -1`);
+      const percentageValidStarts = totalAmountAttemps.amount > 0 ? (notFalseAmountAttemps.notFalseCount / totalAmountAttemps.amount) * 100 : 0;
+      setAmountAttemps(totalAmountAttemps.amount);
+      setAspectFalseAttemps(parseInt(percentageValidStarts));
+    }
+
+    fetchData();
+    getStats();
+  }, [isFocused, isRacing]);
 
   useEffect(() => {
     return () => {
@@ -72,12 +116,33 @@ export default function StartPractice() {
     setStatus(1);
     setIsFalse(false);
     setIsRacing(true);
-    await playSound(require('../assets/sounds/English1_03.mp3'));
+    const files1 = [
+      require("../assets/sounds/English1_01.mp3"),
+      require("../assets/sounds/English1_02.mp3"),
+      require("../assets/sounds/English1_03.mp3"),
+      require("../assets/sounds/English1_04.mp3"),
+      require("../assets/sounds/Spanish1_01.mp3"),
+      require("../assets/sounds/Spanish1_02.mp3"),
+      require("../assets/sounds/Spanish1_03.mp3"),
+    ];
+    const files2 = [
+      require("../assets/sounds/English2_01.mp3"),
+      require("../assets/sounds/English2_02.mp3"),
+      require("../assets/sounds/English2_03.mp3"),
+      require("../assets/sounds/English2_04.mp3"),
+      require("../assets/sounds/Spanish2_01.mp3"),
+      require("../assets/sounds/Spanish2_02.mp3"),
+      require("../assets/sounds/Spanish2_03.mp3"),
+    ];
+
+    await playSound(files1[(config.voice.lenguage == 1 ? 0 : 4) + config.voice.variant - 1]);
+    const onYourMarksRandomTime = Math.random() * (config.times.onYourMarksTimeMax * 1000 - config.times.onYourMarksTimeMin * 1000) + config.times.onYourMarksTimeMin * 1000;
 
     timeoutRaceRef.current = setTimeout(async () => {
       setStatus(2);
-      await playSound(require('../assets/sounds/English2_03.mp3'));
+      await playSound(files2[(config.voice.lenguage == 1 ? 0 : 4) + config.voice.variant - 1]);
       startAccelerometer();
+      setRandomTime = Math.random() * (config.times.setTimeMax * 1000 - config.times.setTimeMin * 1000) + config.times.setTimeMin * 1000;
 
       timeoutSetRef.current = setTimeout(async () => {
         await playSound(require('../assets/sounds/shot.mp3'));
@@ -88,11 +153,11 @@ export default function StartPractice() {
           startTimeRef.current = Date.now(); 
           startElapsedTime();
         }, 40);
-      }, Math.random() * 2000 + 1000); 
-    }, Math.random() * 2000 + 2000); 
+      }, setRandomTime); 
+    }, onYourMarksRandomTime);
   };
 
-  const handleReaction = () => {
+  const handleReaction = async () => {
     if (startTimeRef.current) {
       const reactionDuration = Date.now() - startTimeRef.current;
       setReactionTime(reactionDuration);
@@ -102,10 +167,12 @@ export default function StartPractice() {
       setIsRacing(false);
       stopElapsedTime();
       startTimeRef.current = null;
+      const currDateTime = new Date().toISOString().split("T")[0] + " " + new Date().toISOString().split("T")[1].slice(0, 8);
+      await db.runAsync("INSERT INTO practice_attempts (time, date) VALUES (?,?)", [reactionDuration, currDateTime])
     }
   };
 
-  const handleFalseStart = () => {
+  const handleFalseStart = async () => {
     startTimeRef.current = null;  
     setStatus(5);
     setIsCounting(false);
@@ -117,6 +184,9 @@ export default function StartPractice() {
     if (timeoutRaceRef.current) clearTimeout(timeoutRaceRef.current);
     if (timeoutShotRef.current) clearTimeout(timeoutShotRef.current);
     if (timeoutSetRef.current) clearTimeout(timeoutSetRef.current);
+
+    const currDateTime = new Date().toISOString().split("T")[0] + " " + new Date().toISOString().split("T")[1].slice(0, 8);
+    await db.runAsync("INSERT INTO practice_attempts (time, date) VALUES (?,?)", [-1, currDateTime])
   };
 
   const handleBackToStart = () => {
@@ -129,20 +199,12 @@ export default function StartPractice() {
     if(status == 0) setIsFalse(false);
   }, [status])
  
-  useEffect(() => {
-    getData("practiceConfig").then(data => {
-      console.log("HOLA: ", data);
-    }).catch(e => {
-      console.error("Error al obtener los datos", e);
-    });
-  }, []);
-
   return (
     <TouchableWithoutFeedback onPress={() => { if (isRacing) { if (status === 3) handleReaction(); else handleFalseStart(); } else startRace(); }}>
       <View style={[styles.container, { backgroundColor: isFalse ? COLORS.red_01 : isCounting ? COLORS.blue_01 : COLORS.black_02, }, ]}>
 
         {status == 0 && (<View style={[styles.topContainer, {paddingTop: insets.top + 18}]}>
-            <TouchableOpacity style={[styles.statsBtn, {top: insets.top + 8}]}>
+            <TouchableOpacity style={[styles.statsBtn, {top: insets.top + 8}]} onPress={() => navigation.navigate("PracticeStatsScreen")}>
                 <View style={{transform: "rotate(-45deg)"}}>
                     <Icon name="arrow-right" size={SIZES.i3}/>
                 </View>
@@ -152,12 +214,12 @@ export default function StartPractice() {
                 <Text style={styles.subTitle}>/athletic's app</Text>
             </View>
             <View style={styles.attempsContainer}>
-                <Text style={styles.attemps}>234</Text>
+                <Text style={styles.attemps}>{amountAttemps}</Text>
                 <View style={styles.flag}>
                     <Icon name="flag" color={COLORS.black_01} size={SIZES.i1}/>
                 </View>
             </View>
-            <Text style={styles.falseStarts}>El <Text style={styles.falseStartsBold}>100%</Text> de las pruebas fueron validas</Text>
+            <Text style={styles.falseStarts}>El <Text style={styles.falseStartsBold}>{aspectFalseAttemps}%</Text> de las pruebas fueron validas</Text>
         </View>)}
 
         {(status == 4 || status == 5) && (
@@ -192,7 +254,7 @@ export default function StartPractice() {
         {!isRacing && status == 0 && (
           <View style={styles.bottomContainer}>
             <Text style={styles.pressToStart}>Pulsa la pantalla para iniciar</Text>
-            <TouchableOpacity style={styles.configBtn} onPress={() => navigation.navigate("PracticeScreenConfig")}>
+            <TouchableOpacity style={styles.configBtn} onPress={() => navigation.navigate("PracticeConfigScreen")}>
               <Text style={styles.configBtnText}>CONFIGURACION</Text>
             </TouchableOpacity>
           </View>
@@ -226,6 +288,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     position: "absolute",
     borderRadius: 24,
+    zIndex: 1000,
     height: 48,
     width: 48,
     right: 32,

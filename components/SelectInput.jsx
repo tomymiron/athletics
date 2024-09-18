@@ -3,7 +3,7 @@ import { COLORS, SIZES } from "../constants/theme";
 import { Keyboard, Text } from "react-native";
 import React, { useState } from "react";
 
-export default function SelectInput({ itemsUsed, value, setValue, placeholder, lightTheme = false, secondaryPlaceholder = null, style }) {
+export default function SelectInput({ itemsUsed, value, setValue, placeholder, lightTheme = false, secondaryPlaceholder = null, style, onSelectItem }) {
   const [items, setItems] = useState(itemsUsed); 
   const [open, setOpen] = useState(false);
 
@@ -12,8 +12,9 @@ export default function SelectInput({ itemsUsed, value, setValue, placeholder, l
       onPress={() => Keyboard.dismiss()}
       open={open}
       value={value}
-      items={items}
+      items={itemsUsed}
       setOpen={setOpen}
+      onSelectItem={onSelectItem}
       setValue={(value) => setValue(value)}
       setItems={setItems}
       placeholder={
