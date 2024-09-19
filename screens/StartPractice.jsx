@@ -2,12 +2,24 @@ import { StyleSheet, Text, View, TouchableWithoutFeedback, TouchableOpacity } fr
 import { useNavigation, useIsFocused } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import React, { useState, useEffect, useRef } from "react";
-import { getData } from "../constants/dataExchange.jsx";
 import { COLORS, SIZES } from "../constants/theme.js";
 import { Accelerometer } from "expo-sensors";
 import * as SQLite from "expo-sqlite";
 import Icon from "../constants/Icon.jsx";
 import { Audio } from "expo-av";
+
+const defaultConfig = {
+  voice: {
+    lenguage: 1,
+    variant: 1,
+  },
+  times: {
+    onYourMarksTimeMin: 2,
+    onYourMarksTimeMax: 5,
+    setTimeMin: 1,
+    setTimeMax: 3,
+  },
+};
 
 export default function StartPractice() {
   const [reactionTime, setReactionTime] = useState(null);
@@ -35,10 +47,11 @@ export default function StartPractice() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const data = await getData("practiceConfig");
+        const result = await db.getFirstAsync("SELECT value FROM practice_config WHERE key = 'practiceConfig';");
+        const data = result ? result.value : null;
 
-        if (data == undefined) {
-          await storeData("practiceConfig", JSON.stringify(defaultConfig));
+        if (data == null) {
+          await db.runAsync("UPDATE practice_config SET value = ? WHERE key = 'practiceConfig';", [JSON.stringify(defaultConfig)]);
         } else {
           const parsedConfig = JSON.parse(data);
           setConfig(parsedConfig);

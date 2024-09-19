@@ -1,11 +1,11 @@
 import { StyleSheet, Text, TouchableOpacity, View, Dimensions } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { getData, storeData } from "../constants/dataExchange";
 import { useNavigation } from "@react-navigation/native";
 import SelectInput from "../components/SelectInput";
 import Slider from '@react-native-community/slider';
 import React, { useState, useEffect } from "react";
 import { COLORS, SIZES } from "../constants/theme";
+import * as SQLite from "expo-sqlite";
 import Icon from "../constants/Icon";
 
 const defaultConfig = {
@@ -28,6 +28,7 @@ export default function StartPracticeConfig() {
   const [setTimeMax, setSetTimeMax] = useState(defaultConfig.times.setTimeMax);
   const [lenguage, setLenguage] = useState(defaultConfig.voice.lenguage);
   const [variant, setVariant] = useState(defaultConfig.voice.variant);
+  const db = SQLite.useSQLiteContext();
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
 
@@ -62,10 +63,11 @@ export default function StartPracticeConfig() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const data = await getData("practiceConfig");
+        const result = await db.getFirstAsync("SELECT value FROM practice_config WHERE key = 'practiceConfig';");
+        const data = result ? result.value : null;
 
-        if (data == undefined) {
-          await storeData("practiceConfig", JSON.stringify(defaultConfig));
+        if (data == null) {
+          await db.runAsync("UPDATE practice_config SET value = ? WHERE key = 'practiceConfig';", [JSON.stringify(defaultConfig)]);
         } else {
           const parsedConfig = JSON.parse(data);
           updateConfig(parsedConfig);
@@ -101,7 +103,7 @@ export default function StartPracticeConfig() {
           setTimeMax: setTimeMax,
         },
       };
-      await storeData("practiceConfig", JSON.stringify(config));
+      await db.runAsync("UPDATE practice_config SET value = ? WHERE key = 'practiceConfig';", [JSON.stringify(config)]);
     };
 
     saveConfig();
@@ -115,7 +117,7 @@ export default function StartPracticeConfig() {
 
       <Text style={[styles.screenTitle, {marginTop: insets.top + 72}]}>Configuracion</Text>
 
-      <View style={styles.boxContainer}>
+      <View style={[styles.boxContainer, {zIndex: 1000}]}>
         <Text style={styles.boxTitle}>Voz de partida</Text>
         <View style={{ zIndex: 1000 }}>
           <SelectInput
@@ -258,9 +260,9 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.black_02,
     borderRadius: 12,
     marginTop: 6,
-    zIndex: 1000,
     width: "90%",
     padding: 24,
+    zIndex: 100,
   },
   boxTitle: {
     color: COLORS.white_01,
