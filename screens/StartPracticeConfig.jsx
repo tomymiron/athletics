@@ -1,25 +1,30 @@
-import { StyleSheet, Text, TouchableOpacity, View, Dimensions } from "react-native";
+import { StyleSheet, Text, TouchableOpacity, View, Dimensions, Platform, ScrollView } from "react-native";
+import { useStartConfig } from "../context/StartPracticeContext.jsx";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
+import defaultConfig from "../assets/defaultSettings";
+import { useAuth } from "../context/AuthContext.jsx";
 import SelectInput from "../components/SelectInput";
-import Slider from '@react-native-community/slider';
+import Slider from "@react-native-community/slider";
 import React, { useState, useEffect } from "react";
 import { COLORS, SIZES } from "../constants/theme";
-import * as SQLite from "expo-sqlite";
 import Icon from "../constants/Icon";
 
-const defaultConfig = {
-  voice: {
-    lenguage: 1,
-    variant: 1,
-  },
-  times: {
-    onYourMarksTimeMin: 2,
-    onYourMarksTimeMax: 5,
-    setTimeMin: 1,
-    setTimeMax: 3,
-  },
-};
+const lenguageOptions = [
+  { label: "English", value: 1 },
+  { label: "Español", value: 2 },
+];
+const englishVoiceVariant = [
+  { label: "Voice 01", value: 1 },
+  { label: "Voice 02", value: 2 },
+  { label: "Voice 03", value: 3 },
+  { label: "Voice 04", value: 4 },
+];
+const spanishVoiceVariant = [
+  { label: "Voz 01", value: 1 },
+  { label: "Voz 02", value: 2 },
+  { label: "Voz 03", value: 3 },
+];
 
 export default function StartPracticeConfig() {
   const [onYourMarksTimeMin, setOnYourMarksTimeMin] = useState(defaultConfig.times.onYourMarksTimeMin);
@@ -28,291 +33,285 @@ export default function StartPracticeConfig() {
   const [setTimeMax, setSetTimeMax] = useState(defaultConfig.times.setTimeMax);
   const [lenguage, setLenguage] = useState(defaultConfig.voice.lenguage);
   const [variant, setVariant] = useState(defaultConfig.voice.variant);
-  const db = SQLite.useSQLiteContext();
+
+  const { startConfig, updateConfig } = useStartConfig();
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
+  const { logout } = useAuth();
 
   useEffect(() => {
     if (onYourMarksTimeMax < onYourMarksTimeMin) {
       setOnYourMarksTimeMax(onYourMarksTimeMin);
     }
   }, [onYourMarksTimeMax, onYourMarksTimeMin]);
-
   useEffect(() => {
     if (setTimeMax < setTimeMin) {
       setSetTimeMax(setTimeMin);
     }
   }, [setTimeMin, setTimeMax]);
 
-  const lenguageOptions = [
-    { label: "English", value: 1 },
-    { label: "Español", value: 2 },
-  ];
-  const englishVoiceVariant = [
-    { label: "Voice 01", value: 1 },
-    { label: "Voice 02", value: 2 },
-    { label: "Voice 03", value: 3 },
-    { label: "Voice 04", value: 4 },
-  ];
-  const spanishVoiceVariant = [
-    { label: "Voz 01", value: 1 },
-    { label: "Voz 02", value: 2 },
-    { label: "Voz 03", value: 3 },
-  ];
-
+  // --- StartUp Config and Update ---
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const result = await db.getFirstAsync("SELECT value FROM practice_config WHERE key = 'practiceConfig';");
-        const data = result ? result.value : null;
-
-        if (data == null) {
-          await db.runAsync("UPDATE practice_config SET value = ? WHERE key = 'practiceConfig';", [JSON.stringify(defaultConfig)]);
-        } else {
-          const parsedConfig = JSON.parse(data);
-          updateConfig(parsedConfig);
-        }
-      } catch (e) {
-        console.log("Error al obtener los datos", e);
-      }
-    };
-
-    const updateConfig = (config) => {
-      setOnYourMarksTimeMax(config?.times.onYourMarksTimeMax);
-      setOnYourMarksTimeMin(config?.times.onYourMarksTimeMin);
-      setSetTimeMin(config?.times.setTimeMin);
-      setSetTimeMax(config?.times.setTimeMax);
-      setLenguage(config?.voice.lenguage);
-      setVariant(config?.voice.variant);
-    };
-
-    fetchData();
+    setOnYourMarksTimeMin(startConfig.times.onYourMarksTimeMin);
+    setOnYourMarksTimeMax(startConfig.times.onYourMarksTimeMax);
+    setSetTimeMin(startConfig.times.setTimeMin);
+    setSetTimeMax(startConfig.times.setTimeMax);
+    setLenguage(startConfig.voice.lenguage);
+    setVariant(startConfig.voice.variant);
   }, []);
-
   useEffect(() => {
-    const saveConfig = async () => {
-      const config = {
-        voice: {
-          lenguage: lenguage,
-          variant: variant,
-        },
-        times: {
-          onYourMarksTimeMin: onYourMarksTimeMin,
-          onYourMarksTimeMax: onYourMarksTimeMax,
-          setTimeMin: setTimeMin,
-          setTimeMax: setTimeMax,
-        },
-      };
-      await db.runAsync("UPDATE practice_config SET value = ? WHERE key = 'practiceConfig';", [JSON.stringify(config)]);
-    };
-
-    saveConfig();
+    updateConfig({
+      voice: {
+        lenguage: lenguage,
+        variant: variant,
+      },
+      times: {
+        onYourMarksTimeMin: onYourMarksTimeMin,
+        onYourMarksTimeMax: onYourMarksTimeMax,
+        setTimeMin: setTimeMin,
+        setTimeMax: setTimeMax,
+      },
+    });
   }, [onYourMarksTimeMax, onYourMarksTimeMin, setTimeMax, setTimeMin, lenguage, variant]);
+  // --- StartUp Config and Update ---
 
   return (
-    <View style={styles.container}>
-      <TouchableOpacity style={[styles.backButton, { top: insets.top }]} onPress={() => navigation.navigate("PracticeScreen")} >
-        <Icon name="arrow-left" color={COLORS.black_01} size={SIZES.i3} />
+    <ScrollView style={[styles.mainContainer, {paddingTop: insets.top}]}>
+
+      <TouchableOpacity style={[styles.backButton, {backgroundColor: COLORS.black_01}]} onPress={() => navigation.navigate("PracticeScreen")}>
+        <Icon name="arrow-left" color={COLORS.blue_01} size={SIZES.i3}/>
       </TouchableOpacity>
 
-      <Text style={[styles.screenTitle, {marginTop: insets.top + 72}]}>Configuracion</Text>
+      <Text style={styles.configurationTitle}>Configuracion</Text>
 
-      <View style={[styles.boxContainer, {zIndex: 1000}]}>
-        <Text style={styles.boxTitle}>Voz de partida</Text>
-        <View style={{ zIndex: 1000 }}>
-          <SelectInput
-            onSelectItem={() => setVariant(1)}
-            itemsUsed={lenguageOptions}
-            setValue={setLenguage}
-            placeholder="Lenguaje"
-            value={lenguage}
-            lightTheme
-          />
+      <View style={styles.boxContainer01}>
+        <View style={styles.accountContainer}>
+          <Text style={styles.accountTitle}>Tu cuenta</Text>
+          <Text style={styles.account}>tomymiron@gmail.com</Text>
         </View>
-        <View style={{ zIndex: -1 }}>
-          <SelectInput
-            itemsUsed={lenguage == 1 ? englishVoiceVariant : spanishVoiceVariant}
-            style={{ marginTop: 4 }}
-            setValue={setVariant}
-            placeholder="Variante"
-            value={variant}
-            lightTheme
-          />
+        <TouchableOpacity style={styles.accountIcon} onPress={() => logout()}>
+          <Icon name="logout" color={COLORS.red_01} size={SIZES.i2}/>
+        </TouchableOpacity>
+      </View>
+
+      <View style={[styles.boxContainer02, {zIndex: 100}]}>
+        <Text style={[styles.boxTitle, {marginBottom: 8}]}>Voz de Partida</Text>
+        <View style={styles.selectsContainer}>
+          <View style={styles.firstSelectInput}>
+            <SelectInput
+              onSelectItem={() => setVariant(1)}
+              itemsUsed={lenguageOptions}
+              setValue={setLenguage}
+              placeholder="Lenguaje"
+              value={lenguage}
+              lightTheme
+            />
+          </View>
+          <View style={{zIndex: -1}}>
+            <SelectInput
+              itemsUsed={lenguage == 1 ? englishVoiceVariant : spanishVoiceVariant}
+              setValue={setVariant}
+              placeholder="Variante"
+              value={variant}
+              lightTheme
+            />
+          </View>
         </View>
       </View>
 
-      <View style={styles.boxContainer}>
+      <View style={styles.boxContainer02}>
         <Text style={styles.boxTitle}>Tiempo en Preparacion</Text>
-        <View style={styles.subBoxContainer}>
-          <View>
+        <View style={styles.sliderContainer}>
+          <View style={styles.sliderContainerLeft}>
+            <Text style={styles.timeTitle}>Tiempo <Text style={styles.timeTitleBold}>Minimo</Text></Text>
             <Slider
-              style={{width: Dimensions.get("screen").width * .8, height: 40}}
+              style={{width: Dimensions.get("screen").width * .7 - 24 * 2, marginLeft: Platform.OS === "ios" ? 0 : -12}}
               onValueChange={(value) => setOnYourMarksTimeMin(value)}
-              maximumTrackTintColor={COLORS.black_01}
+              maximumTrackTintColor={COLORS.black_02}
               minimumTrackTintColor={COLORS.blue_01}
+              thumbTintColor={COLORS.blue_01}
               value={onYourMarksTimeMin}
               maximumValue={10}
               minimumValue={1}
               step={0.5}
             />
-            <View style={styles.timeContainer}>
-              <Text style={styles.time}>1s</Text>
-              <Text style={styles.time}>10s</Text>
-            </View>
-            <Text style={styles.min}>MINIMO <Text style={styles.bold}>{onYourMarksTimeMin}s</Text>
-            </Text>
+          </View>
+          <View style={styles.timeContainer}>
+            <Text style={styles.time}>{onYourMarksTimeMin}s</Text>
           </View>
         </View>
-
-        <View style={styles.subBoxContainer}>
-          <View>
-            <View style={styles.timeContainer2}>
-              <Text style={styles.time}>{onYourMarksTimeMin}s</Text>
-              <Text style={styles.time}>15s</Text>
-            </View>
-            <Text style={styles.max}>MAXIMO <Text style={styles.bold}>{onYourMarksTimeMax}s</Text></Text>
+        <View style={[styles.sliderContainer, {marginTop: 12}]}>
+          <View style={styles.sliderContainerLeft}>
+            <Text style={styles.timeTitle}>Tiempo <Text style={styles.timeTitleBold}>Maximo</Text></Text>
             <Slider
-              style={{width: Dimensions.get("screen").width * .8, height: 40}}
+              style={{width: Dimensions.get("screen").width * .7 - 24 * 2, marginLeft: Platform.OS === "ios" ? 0 : -12}}
               onValueChange={(value) => setOnYourMarksTimeMax(value)}
-              maximumTrackTintColor={COLORS.black_01}
+              maximumTrackTintColor={COLORS.black_02}
               minimumTrackTintColor={COLORS.blue_01}
               minimumValue={onYourMarksTimeMin}
+              thumbTintColor={COLORS.blue_01}
               value={onYourMarksTimeMax}
               maximumValue={15}
               step={0.5}
             />
           </View>
+          <View style={styles.timeContainer}>
+            <Text style={styles.time}>{onYourMarksTimeMax}s</Text>
+          </View>
         </View>
       </View>
 
-      <View style={styles.boxContainer}>
+      <View style={styles.boxContainer02}>
         <Text style={styles.boxTitle}>Tiempo en Listos</Text>
-        <View style={styles.subBoxContainer}>
-          <View>
+        <View style={styles.sliderContainer}>
+          <View style={styles.sliderContainerLeft}>
+            <Text style={styles.timeTitle}>Tiempo <Text style={styles.timeTitleBold}>Minimo</Text></Text>
             <Slider
-              style={{width: Dimensions.get("screen").width * .8, height: 40}}
+              style={{width: Dimensions.get("screen").width * .7 - 24 * 2, marginLeft: Platform.OS === "ios" ? 0 : -12}}
               onValueChange={(value) => setSetTimeMin(value)}
-              maximumTrackTintColor={COLORS.black_01}
+              maximumTrackTintColor={COLORS.black_02}
               minimumTrackTintColor={COLORS.blue_01}
+              thumbTintColor={COLORS.blue_01}
               value={setTimeMin}
               maximumValue={3}
               minimumValue={1}
               step={0.5}
             />
-            <View style={styles.timeContainer}>
-              <Text style={styles.time}>1s</Text>
-              <Text style={styles.time}>3s</Text>
-            </View>
-            <Text style={styles.min}>MINIMO <Text style={styles.bold}>{setTimeMin}s</Text>
-            </Text>
+          </View>
+          <View style={styles.timeContainer}>
+            <Text style={styles.time}>{setTimeMin}s</Text>
           </View>
         </View>
-
-        <View style={styles.subBoxContainer}>
-          <View>
-            <View style={styles.timeContainer2}>
-              <Text style={styles.time}>{setTimeMin}s</Text>
-              <Text style={styles.time}>5s</Text>
-            </View>
-            <Text style={styles.max}>MAXIMO <Text style={styles.bold}>{setTimeMax}s</Text></Text>
+        <View style={[styles.sliderContainer, {marginTop: 12}]}>
+          <View style={styles.sliderContainerLeft}>
+            <Text style={styles.timeTitle}>Tiempo <Text style={styles.timeTitleBold}>Maximo</Text></Text>
             <Slider
-              style={{width: Dimensions.get("screen").width * .8, height: 40}}
+              style={{width: Dimensions.get("screen").width * .7 - 24 * 2, marginLeft: Platform.OS === "ios" ? 0 : -12}}
               onValueChange={(value) => setSetTimeMax(value)}
-              maximumTrackTintColor={COLORS.black_01}
+              maximumTrackTintColor={COLORS.black_02}
               minimumTrackTintColor={COLORS.blue_01}
+              thumbTintColor={COLORS.blue_01}
               minimumValue={setTimeMin}
               value={setTimeMax}
               maximumValue={5}
               step={0.5}
             />
           </View>
+          <View style={styles.timeContainer}>
+            <Text style={styles.time}>{setTimeMax}s</Text>
+          </View>
         </View>
       </View>
-    </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    backgroundColor: COLORS.black_01,
-    justifyContent: "flex-start",
-    alignItems: "center",
+  mainContainer: {
+    backgroundColor: COLORS.blue_01,
+    paddingHorizontal: 24,
     flex: 1,
   },
   backButton: {
-    backgroundColor: COLORS.purple_01,
     justifyContent: "center",
     alignItems: "center",
-    position: "absolute",
     borderRadius: 24,
     height: 48,
     width: 48,
-    left: 32,
   },
-  screenTitle: {
-    color: COLORS.white_01,
-    fontSize: SIZES.f2,
-    fontWeight: "700",
-    paddingLeft: 24,
+  configurationTitle: {
+    fontFamily: "Inter_bold",
+    color: COLORS.black_01,
+    fontSize: SIZES.f1,
+    marginTop: 28,
+  },
+  boxContainer01: {
+    backgroundColor: COLORS.black_01,
+    justifyContent: "space-between",
+    alignItems: "center",
+    flexDirection: "row",
+    borderRadius: 34,
+    marginTop: 24,
     width: "100%",
+    height: 68,
   },
-  boxContainer: {
-    backgroundColor: COLORS.black_02,
-    borderRadius: 12,
-    marginTop: 6,
-    width: "90%",
+  accountContainer: {
+    justifyContent: "center",
+    alignItems: "flex-start",
+    paddingLeft: 24,
+  },
+  accountTitle: {
+    fontFamily: "Inter_regular",
+    color: COLORS.white_01,
+    lineHeight: SIZES.f5,
+    fontSize: SIZES.f5,
+  },
+  account: {
+    fontFamily: "Inter_bold",
+    color: COLORS.blue_01,
+    lineHeight: SIZES.f4,
+    fontSize: SIZES.f4,
+  },
+  accountIcon: {
+    borderColor: COLORS.red_01,
+    justifyContent: "center",
+    alignItems: "center",
+    borderRadius: 24,
+    paddingRight: 1,
+    marginRight: 10,
+    borderWidth: 2,
+    height: 48,
+    width: 48,
+  },
+  boxContainer02: {
+    backgroundColor: COLORS.black_01,
+    flexDirection: "column",
+    borderRadius: 20,
+    marginTop: 8,
     padding: 24,
-    zIndex: 100,
   },
   boxTitle: {
-    color: COLORS.white_01,
-    fontSize: SIZES.f4,
-    fontWeight: "500",
-    marginBottom: 8,
-    width: "100%",
+    fontFamily: "Inter_bold",
+    color: COLORS.blue_01,
+    lineHeight: SIZES.f3,
+    fontSize: SIZES.f3,
+    marginBottom: 24,
   },
-  subBoxContainer: {
-    justifyContent: "flex-start",
+  sliderContainer: {
+    justifyContent: "space-between",
     alignItems: "center",
-    width: "100%",
+    flexDirection: "row",
+  },
+  sliderContainerLeft: {
+    justifyContent: "center",
+    alignItems: "flex-start",
+    flexDirection: "column",
+  },
+  timeTitle: {
+    fontFamily: "Inter_medium",
+    color: COLORS.blue_01,
+    lineHeight: SIZES.f6,
+    fontSize: SIZES.f6,
+  },
+  timeTitleBold: {
+    fontFamily: "Inter_extraBold",
   },
   timeContainer: {
-    justifyContent: "space-between",
-    paddingHorizontal: 12,
-    alignItems: "flex-end",
-    flexDirection: "row",
-    marginTop: 8,
-  },
-  timeContainer2: {
-    justifyContent: "space-between",
-    paddingHorizontal: 12,
-    alignItems: "flex-end",
-    flexDirection: "row",
-    marginBottom: 8,
+    backgroundColor: COLORS.black_02,
+    justifyContent: "center",
+    alignItems: "center",
+    borderRadius: 12,
+    height: 48,
+    width: 68,
   },
   time: {
-    color: COLORS.white_01,
+    fontFamily: "Inter_bold",
+    color: COLORS.blue_01,
+    fontSize: SIZES.f3,
   },
-  min: {
-    color: COLORS.white_01,
-    maxHeight: SIZES.f6,
-    textAlign: "center",
-    fontSize: SIZES.f7,
-    fontWeight: "400",
-    marginTop: -14,
-    flex: 1,
-  },
-  max: {
-    color: COLORS.white_01,
-    maxHeight: SIZES.f6,
-    textAlign: "center",
-    fontSize: SIZES.f7,
-    fontWeight: "400",
+  firstSelectInput: {
     marginBottom: 8,
-    marginTop: -22,
-    flex: 1,
-  },
-  bold: {
-    fontWeight: "700"
-  },
+    zIndex: 1000,
+  }
+
 });

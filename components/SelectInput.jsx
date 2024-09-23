@@ -15,6 +15,7 @@ export default function SelectInput({ itemsUsed, value, setValue, placeholder, l
       items={itemsUsed}
       setOpen={setOpen}
       onSelectItem={onSelectItem}
+      listMode="SCROLLVIEW"
       setValue={(value) => setValue(value)}
       setItems={setItems}
       placeholder={

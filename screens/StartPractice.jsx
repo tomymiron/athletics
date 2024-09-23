@@ -1,302 +1,282 @@
 import { StyleSheet, Text, View, TouchableWithoutFeedback, TouchableOpacity } from "react-native";
-import { useNavigation, useIsFocused } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import React, { useState, useEffect, useRef } from "react";
-import { COLORS, SIZES } from "../constants/theme.js";
-import { Accelerometer } from "expo-sensors";
-import * as SQLite from "expo-sqlite";
+import { BLURHASH, COLORS, SIZES } from "../constants/theme.js";
+import { useNavigation } from "@react-navigation/native";
+import SwipeButton from "../components/SwipeButton.jsx";
+import { LinearGradient } from "expo-linear-gradient";
 import Icon from "../constants/Icon.jsx";
-import { Audio } from "expo-av";
+import React, { useState } from "react";
+import { Image } from "expo-image";
 
-const defaultConfig = {
-  voice: {
-    lenguage: 1,
-    variant: 1,
-  },
-  times: {
-    onYourMarksTimeMin: 2,
-    onYourMarksTimeMax: 5,
-    setTimeMin: 1,
-    setTimeMax: 3,
-  },
-};
+import background01 from "../assets/images/background01.png";
 
 export default function StartPractice() {
-  const [reactionTime, setReactionTime] = useState(null);
-  const [isCounting, setIsCounting] = useState(false);
-  const [elapsedTime, setElapsedTime] = useState(0);
-  const [isRacing, setIsRacing] = useState(false);
-  const [isFalse, setIsFalse] = useState(false);
-  const [status, setStatus] = useState(0);
-  const [config, setConfig] = useState({});
-  const db = SQLite.useSQLiteContext();
-  const insets = useSafeAreaInsets();
-  const isFocused = useIsFocused();
-
-  const intervalIdRef = useRef(null); 
-  const startTimeRef = useRef(null); 
-
-  const timeoutRaceRef = useRef(null); 
-  const timeoutShotRef = useRef(null);
-  const timeoutSetRef = useRef(null); 
+  const [isSwiping, setIsSwiping] = useState(false);
   const navigation = useNavigation();
+  const insets = useSafeAreaInsets();
 
-  const [amountAttemps, setAmountAttemps] = useState(0);
-  const [aspectFalseAttemps, setAspectFalseAttemps] = useState(100);
-
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const result = await db.getFirstAsync("SELECT value FROM practice_config WHERE key = 'practiceConfig';");
-        const data = result ? result.value : null;
-
-        if (data == null) {
-          await db.runAsync("UPDATE practice_config SET value = ? WHERE key = 'practiceConfig';", [JSON.stringify(defaultConfig)]);
-        } else {
-          const parsedConfig = JSON.parse(data);
-          setConfig(parsedConfig);
-        }
-      } catch (e) {
-        console.log("Error al obtener los datos", e);
-        setConfig({
-          voice: {
-            lenguage: 1,
-            variant: 1,
-          },
-          times: {
-            onYourMarksTimeMin: 2,
-            onYourMarksTimeMax: 5,
-            setTimeMin: 1,
-            setTimeMax: 3,
-          },
-        });
-      }
-    };
-
-    const getStats = async () => {
-      const totalAmountAttemps = await db.getFirstAsync(`SELECT count(id) as "amount" FROM practice_attempts`,);
-      const notFalseAmountAttemps = await db.getFirstAsync(`SELECT COUNT(id) as "notFalseCount" FROM practice_attempts WHERE time != -1`);
-      const percentageValidStarts = totalAmountAttemps.amount > 0 ? (notFalseAmountAttemps.notFalseCount / totalAmountAttemps.amount) * 100 : 0;
-      setAmountAttemps(totalAmountAttemps.amount);
-      setAspectFalseAttemps(parseInt(percentageValidStarts));
-    }
-
-    fetchData();
-    getStats();
-  }, [isFocused, isRacing]);
-
-  useEffect(() => {
-    return () => {
-      Accelerometer.removeAllListeners();
-      if (intervalIdRef.current) clearInterval(intervalIdRef.current);
-    };
-  }, []);
-
-  const playSound = async (soundFile) => {
-    const { sound } = await Audio.Sound.createAsync(soundFile);
-    await sound.playAsync();
-  };
-
-  const startAccelerometer = () => {
-    Accelerometer.setUpdateInterval(4);
-    Accelerometer.addListener(accelerometerData => {
-      const { x, y, z } = accelerometerData;
-      const movementMagnitude = Math.sqrt(x * x + y * y + z * z);
-      if (movementMagnitude > 1.5 && startTimeRef.current) {
-        handleReaction();
-      } else if (movementMagnitude > 1.5 && !startTimeRef.current) {
-        handleFalseStart();
-      }
-    });
-  };
-
-  const stopAccelerometer = () => {
-    Accelerometer.removeAllListeners();
-  };
-
-  const startElapsedTime = () => {
-    setElapsedTime(0);
-    intervalIdRef.current = setInterval(() => {
-      setElapsedTime(prevTime => prevTime + 1);
-    }, 1);
-  };
-
-  const stopElapsedTime = () => {
-    if (intervalIdRef.current) clearInterval(intervalIdRef.current);
-  };
-
-  const startRace = async () => {
-    setStatus(1);
-    setIsFalse(false);
-    setIsRacing(true);
-    const files1 = [
-      require("../assets/sounds/English1_01.mp3"),
-      require("../assets/sounds/English1_02.mp3"),
-      require("../assets/sounds/English1_03.mp3"),
-      require("../assets/sounds/English1_04.mp3"),
-      require("../assets/sounds/Spanish1_01.mp3"),
-      require("../assets/sounds/Spanish1_02.mp3"),
-      require("../assets/sounds/Spanish1_03.mp3"),
-    ];
-    const files2 = [
-      require("../assets/sounds/English2_01.mp3"),
-      require("../assets/sounds/English2_02.mp3"),
-      require("../assets/sounds/English2_03.mp3"),
-      require("../assets/sounds/English2_04.mp3"),
-      require("../assets/sounds/Spanish2_01.mp3"),
-      require("../assets/sounds/Spanish2_02.mp3"),
-      require("../assets/sounds/Spanish2_03.mp3"),
-    ];
-
-    await playSound(files1[(config.voice.lenguage == 1 ? 0 : 4) + config.voice.variant - 1]);
-    const onYourMarksRandomTime = Math.random() * (config.times.onYourMarksTimeMax * 1000 - config.times.onYourMarksTimeMin * 1000) + config.times.onYourMarksTimeMin * 1000;
-
-    timeoutRaceRef.current = setTimeout(async () => {
-      setStatus(2);
-      await playSound(files2[(config.voice.lenguage == 1 ? 0 : 4) + config.voice.variant - 1]);
-      startAccelerometer();
-      setRandomTime = Math.random() * (config.times.setTimeMax * 1000 - config.times.setTimeMin * 1000) + config.times.setTimeMin * 1000;
-
-      timeoutSetRef.current = setTimeout(async () => {
-        await playSound(require('../assets/sounds/shot.mp3'));
-
-        timeoutShotRef.current = setTimeout(() => {
-          setStatus(3);
-          setIsCounting(true);
-          startTimeRef.current = Date.now(); 
-          startElapsedTime();
-        }, 40);
-      }, setRandomTime); 
-    }, onYourMarksRandomTime);
-  };
-
-  const handleReaction = async () => {
-    if (startTimeRef.current) {
-      const reactionDuration = Date.now() - startTimeRef.current;
-      setReactionTime(reactionDuration);
-      setIsCounting(false);
-      stopAccelerometer();
-      setStatus(4);
-      setIsRacing(false);
-      stopElapsedTime();
-      startTimeRef.current = null;
-      const currDateTime = new Date().toISOString().split("T")[0] + " " + new Date().toISOString().split("T")[1].slice(0, 8);
-      await db.runAsync("INSERT INTO practice_attempts (time, date) VALUES (?,?)", [reactionDuration, currDateTime])
-    }
-  };
-
-  const handleFalseStart = async () => {
-    startTimeRef.current = null;  
-    setStatus(5);
-    setIsCounting(false);
-    stopAccelerometer();
-    setIsRacing(false);
-    stopElapsedTime();
-    setIsFalse(true);
-
-    if (timeoutRaceRef.current) clearTimeout(timeoutRaceRef.current);
-    if (timeoutShotRef.current) clearTimeout(timeoutShotRef.current);
-    if (timeoutSetRef.current) clearTimeout(timeoutSetRef.current);
-
-    const currDateTime = new Date().toISOString().split("T")[0] + " " + new Date().toISOString().split("T")[1].slice(0, 8);
-    await db.runAsync("INSERT INTO practice_attempts (time, date) VALUES (?,?)", [-1, currDateTime])
-  };
-
-  const handleBackToStart = () => {
-    setReactionTime(null);
-    setIsFalse(false);
-    setStatus(0);
-  };
-
-  useEffect(() => {
-    if(status == 0) setIsFalse(false);
-  }, [status])
- 
   return (
-    <TouchableWithoutFeedback onPress={() => { if (isRacing) { if (status === 3) handleReaction(); else handleFalseStart(); } else startRace(); }}>
-      <View style={[styles.container, { backgroundColor: isFalse ? COLORS.red_01 : isCounting ? COLORS.blue_01 : COLORS.black_02, }, ]}>
+    <TouchableWithoutFeedback onPress={() => {if(!isSwiping)navigation.navigate("PracticeProgressScreen");}}>
+      <View style={{flex: 1}}>
+        <View style={styles.backgroundContainer}>
+          <View style={styles.backgroundTop}/>
+          <View style={styles.backgroundBottom}/>
+          <View style={styles.backgroundImage}><Image cachePolicy="memory" style={{width: "100%", aspectRatio: 9/11}} source={background01} transition={250} placeholder={BLURHASH.black_01}/></View>
+          <View style={styles.linesContainer}>
+            <View style={{flex: 1}}>
+              <View style={[styles.verticalLine, {top: "7%"}]}/>
+              <View style={[styles.verticalLine, {top: "24%"}]}/>
+              <View style={[styles.verticalLine, {top: "42%"}]}/>
 
-        {status == 0 && (<View style={[styles.topContainer, {paddingTop: insets.top + 18}]}>
-            <TouchableOpacity style={[styles.statsBtn, {top: insets.top + 8}]} onPress={() => navigation.navigate("PracticeStatsScreen")}>
-                <View style={{transform: "rotate(-45deg)"}}>
-                    <Icon name="arrow-right" size={SIZES.i3}/>
-                </View>
-            </TouchableOpacity>
-            <View>
-                <Text style={styles.title}>Pruebas Realizadas</Text>
-                <Text style={styles.subTitle}>/athletic's app</Text>
+              <View style={[styles.horizontalLine, {left: "15%"}]}/>
+              <View style={[styles.horizontalLine, {left: "50%"}]}/>
+              <View style={[styles.horizontalLine, {right: "15%"}]}/>
             </View>
-            <View style={styles.attempsContainer}>
-                <Text style={styles.attemps}>{amountAttemps}</Text>
-                <View style={styles.flag}>
-                    <Icon name="flag" color={COLORS.black_01} size={SIZES.i1}/>
-                </View>
-            </View>
-            <Text style={styles.falseStarts}>El <Text style={styles.falseStartsBold}>{aspectFalseAttemps}%</Text> de las pruebas fueron validas</Text>
-        </View>)}
-
-        {(status == 4 || status == 5) && (
-          <TouchableOpacity style={[styles.backButton, {backgroundColor: isFalse ? COLORS.white_01 : COLORS.purple_01,top: insets.top}]} onPress={handleBackToStart}>
-            <Icon name="arrow-left" color={COLORS.black_01} size={SIZES.i3}/>
-          </TouchableOpacity>
-        )}
-
-        <View style={styles.messagesContainer}>
-          <Text style={styles.mainText}>
-            {status == 0
-              ? "Esperando inicio..."
-              : status == 1
-              ? "¡En sus marcas!"
-              : status == 2
-              ? "¡Listos!"
-              : status == 3
-              ? "¡Disparo!"
-              : status == 4
-              ? "Reaccion Detectada"
-              : "Salida Falsa!"
-            }
-          </Text>
-          {status == 0 && <Text style={styles.taskMsg}>Mueve o toca la pantalla luego de que{"\n"}suene el disparo!</Text>}
-          {status == 4 && <Text style={styles.reactionTime}>{reactionTime}ms</Text>}
-        </View>
-        {isCounting && (
-          <Text style={styles.mainText}>
-            Tiempo transcurrido: {(elapsedTime / 1000).toFixed(1)}s
-          </Text>
-        )}
-        {!isRacing && status == 0 && (
-          <View style={styles.bottomContainer}>
-            <Text style={styles.pressToStart}>Pulsa la pantalla para iniciar</Text>
-            <TouchableOpacity style={styles.configBtn} onPress={() => navigation.navigate("PracticeConfigScreen")}>
-              <Text style={styles.configBtnText}>CONFIGURACION</Text>
-            </TouchableOpacity>
           </View>
-        )}
+          <LinearGradient style={styles.backgroundGradientEffect} colors={[COLORS.black_01, COLORS.blue_01_80, "#fff0"]} start={[0, 1]} end={[1, 0]} locations={[0, .4, .8]} />
+        </View>
+
+        <View style={[styles.mainContainer, {paddingTop: insets.top + 8}]}>
+
+          <View style={styles.headerContainer}>
+            <View style={styles.rankingContainer}>
+              <TouchableOpacity style={styles.rankingBtn}>
+                <Icon name="world" size={SIZES.i2} color={COLORS.black_01}/>
+              </TouchableOpacity>
+              <View style={styles.rankingIndicatorContainer}>
+                <Text style={styles.rankingTitle}>Ranking</Text>
+                <View style={styles.rankingTopContainer}>
+                  <Text style={styles.rankingTop}>102</Text>
+                  <View style={styles.rankingPos}>
+                    <Icon name="pos" size={12}/>
+                  </View>
+                </View>
+              </View>
+            </View>
+            <View style={styles.athleticsLabsContainer}>
+              <Text style={styles.athleticsLabs}>Athletics <Text style={styles.labBolder}>Labs</Text></Text>
+            </View>
+          </View>
+
+          <View style={styles.indicationsContainer}>
+            <Text style={styles.indication}>Presiona la pantalla para comenzar!</Text>
+            <Text style={styles.subIndication}>Mueve o toca la pantalla luego de que{"\n"}suene el disparo!</Text>
+          </View>
+
+          <View style={{flex: 1}}/>
+
+          <View style={styles.cubesContainer}>
+            <View style={styles.cube01}/>
+            <View style={styles.cube02}/>
+            <View style={styles.cube03}/>
+          </View>
+          <View style={styles.statsContainer}>
+            <TouchableOpacity style={styles.statsBtn} onPress={() => navigation.navigate("PracticeStatsScreen")}>
+              <Icon name="arrow-right-m" color={COLORS.black_01} size={SIZES.i3}/>
+            </TouchableOpacity>
+            <Text style={styles.statsTitle}>Pruebas Realizadas</Text>
+            <View style={styles.statsSubContainer}>
+              <Text style={styles.stats}>234</Text>
+              <View style={styles.statsIcon}>
+                <Icon name="flag" size={SIZES.i2}/>
+              </View>
+            </View>
+            <Text style={styles.subStats}>El <Text style={styles.subStatsBolder}>100%</Text> de las pruebas fueron validas</Text>
+          </View>
+
+          <View style={styles.configurationContainer}>
+            <SwipeButton onToggle={() => navigation.navigate("PracticeConfigScreen")} setIsSwiping={setIsSwiping} text="Configuracion"/>
+          </View>
+
+        </View>
       </View>
     </TouchableWithoutFeedback>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    backgroundColor: COLORS.black_01,
-    justifyContent: "center",
-    alignItems: "center",
+  backgroundContainer: {
+    flexDirection: "column",
     flex: 1,
   },
-
-  topContainer: {
-    backgroundColor: COLORS.blue_01,
-    paddingHorizontal: 32,
+  backgroundTop: {
+    backgroundColor: "#52D2FC",
     position: "absolute",
-    paddingBottom: 32,
-    borderBottomRightRadius: 48,
+    height: "50%",
     width: "100%",
     left: 0,
     top: 0,
   },
-  statsBtn: {
+  backgroundBottom: {
+    backgroundColor: "#1778FA",
+    position: "absolute",
+    height: "50%",
+    width: "100%",
+    bottom: 0,
+    left: 0,
+  },
+  backgroundImage: {
+    justifyContent: "center",
+    alignItems: "center",
+    position: "absolute",
+    top: "22%",
+    flex: 1,
+  },
+  linesContainer: {
+    height: "100%",
+    width: "100%",
+  },
+  verticalLine: {
+    backgroundColor: COLORS.black_01_10,
+    position: "relative",
+    width: "100%",
+    height: 2,
+  },
+  horizontalLine: {
+    backgroundColor: COLORS.black_01_10,
+    position: "absolute",
+    height: "100%",
+    width: 2,
+  },
+  backgroundGradientEffect: {
+    position: "absolute",
+    height: "100%",
+    width: "100%",
+    zIndex: 1000,
+  },
+  mainContainer: {
+    paddingHorizontal: 24,
+    position: "absolute",
+    height: "100%",
+    width: "100%",
+    zIndex: 1000,
+    left: 0,
+    top: 0,
+  },
+  headerContainer: {
+    flexDirection: "row",
+  },
+  rankingContainer: {
     backgroundColor: COLORS.black_01,
+    paddingHorizontal: 8,
+    alignItems: "center",
+    flexDirection: "row",
+    borderRadius: 32,
+    height: 64,
+    width: 130,
+  },
+  rankingBtn: {
+    backgroundColor: COLORS.white_01,
+    justifyContent: "center",
+    alignItems: "center",
+    borderRadius: 24,
+    height: 48,
+    width: 48,
+  },
+  rankingIndicatorContainer: {
+    justifyContent: "center",
+    alignItems: "flex-start",
+    marginLeft: 6,
+    flex: 1,
+  },
+  rankingTitle: {
+    fontFamily: "Inter_extraBold",
+    fontSize: SIZES.f7 - 1,
+    color: COLORS.white_01,
+  },
+  rankingTopContainer: {
+    flexDirection: "row",
+    marginTop: -2,
+  },
+  rankingTop: {
+    fontFamily: "Inter_black",
+    fontSize: SIZES.f3 + 2,
+    color: COLORS.white_01,
+    lineHeight: 28,
+  },
+  rankingPos: {
+    marginLeft: -2,
+    marginTop: 2,
+  },
+  athleticsLabsContainer: {
+    backgroundColor: COLORS.black_01,
+    paddingHorizontal: 24,
+    alignItems: "center",
+    flexDirection: "row",
+    borderRadius: 32,
+    marginLeft: 8,
+    height: 64,
+  },
+  athleticsLabs: {
+    fontFamily: "Inter_semiBold",
+    color: COLORS.white_01,
+    fontSize: SIZES.f4,
+  },
+  labBolder: {
+    fontFamily: "Inter_black",
+  },
+  indicationsContainer: {
+    backgroundColor: COLORS.black_01_10,
+    paddingHorizontal: 32,
+    paddingVertical: 20,
+    borderRadius: 24,
+    marginTop: 32,
+  },
+  indication: {
+    fontFamily: "Inter_bold",
+    color: COLORS.black_01,
+    textAlign: "center",
+    fontSize: SIZES.f1,
+    lineHeight: 32,
+  },
+  subIndication: {
+    fontFamily: "Inter_medium",
+    color: COLORS.black_02,
+    lineHeight: SIZES.f5,
+    textAlign: "center",
+    fontSize: SIZES.f5,
+    marginTop: 8,
+  },
+  cubesContainer: {
+    flexDirection: "column",
+    alignItems: "flex-end",
+    position: "relative",
+    marginBottom: -12,
+    width: "100%",
+    zIndex: 100,
+  },
+  cube01: {
+    backgroundColor: COLORS.white_01,
+    marginBottom: 12,
+    borderRadius: 6,
+    marginRight: 48,
+    height: 48,
+    width: 48,
+  },
+  cube02: {
+    backgroundColor: COLORS.black_01,
+    marginBottom: 12,
+    marginRight: 112,
+    borderRadius: 6,
+    height: 48,
+    width: 48,
+  },
+  cube03: {
+    backgroundColor: COLORS.white_01,
+    borderRadius: 6,
+    marginRight: 64,
+    height: 48,
+    width: 48,
+  },
+  statsContainer: {
+    backgroundColor: COLORS.black_01,
+    marginBottom: 12,
+    borderRadius: 32,
+    padding: 24,
+  },
+  statsBtn: {
+    transform: [{ rotate: "-45deg" }],
+    backgroundColor: COLORS.blue_01,
     justifyContent: "center",
     alignItems: "center",
     position: "absolute",
@@ -304,98 +284,42 @@ const styles = StyleSheet.create({
     zIndex: 1000,
     height: 48,
     width: 48,
-    right: 32,
+    right: 24,
+    top: 24,
   },
-  title: {
-    color: COLORS.black_01,
-    fontSize: SIZES.f3,
-    fontWeight: "600",
+  statsTitle: {
+    fontFamily: "Inter_semiBold",
+    color: COLORS.white_02,
+    fontSize: SIZES.f6,
   },
-  subTitle: {
-    color: COLORS.black_01,
-    fontSize: SIZES.f5,
-    fontWeight: "500",
-  },
-  attempsContainer: {
-    justifyContent: "center",
+  statsSubContainer: {
+    justifyContent: "flex-start",
     alignItems: "flex-end",
     flexDirection: "row",
-    paddingLeft: 32,
-    marginTop: 32,
   },
-  attemps: {
-    color: COLORS.black_01,
-    fontWeight: "800",
-    fontSize: 100,
-    margin: 0,
-  },
-  flag: {
-    marginBottom: 22,
-  },
-  falseStarts: {
-    color: COLORS.black_01,
-    fontSize: SIZES.f5,
-    fontWeight: "500",
-  },
-  falseStartsBold: {
-    fontWeight: "900",
-  },
-  mainText: {
+  stats: {
+    fontFamily: "Inter_extraBold",
     color: COLORS.white_01,
-    fontSize: SIZES.f1,
-    fontWeight: "bold",
+    lineHeight: 118,
+    fontSize: 110,
   },
-  bottomContainer: {
-    paddingHorizontal: 32,
-    position: "absolute",
-    width: "100%",
-    bottom: 64,
+  statsIcon: {
+    marginBottom: 24,
   },
-  pressToStart: {
-    color: COLORS.blue_01,
-    fontSize: SIZES.f4,
-    marginBottom: 8,
-  },
-  configBtn: {
-    borderColor: COLORS.blue_01,
-    justifyContent: "center",
-    alignItems: "center",
-    paddingVertical: 16,
-    borderRadius: 6,
-    borderWidth: 2,
-    width: "100%",
-  },
-  configBtnText: {
-    color: COLORS.blue_01,
-    fontSize: SIZES.f4,
-    fontWeight: "bold",
-    margin: 0,
-  },
-  messagesContainer: {
-    justifyContent: "center",
-    alignItems: "center",
-    gap: 8,
-  },
-  taskMsg: {
-    color: COLORS.gray_01,
-    textAlign: "center",
+  subStats: {
+    fontFamily: "Inter_medium",
+    color: COLORS.white_01,
     fontSize: SIZES.f5,
+    marginTop: -12,
   },
-  reactionTime: {
-    color: COLORS.blue_01,
-    fontWeight: "800",
-    fontSize: 56,
-    marginTop: -4,
+  subStatsBolder: {
+    fontFamily: "Inter_black",
   },
-  backButton: {
-    backgroundColor: COLORS.purple_01,
+  configurationContainer: {
     justifyContent: "center",
     alignItems: "center",
-    position: "absolute",
-    borderRadius: 24,
-    height: 48,
-    width: 48,
-    left: 32,
-    top: 32,
-  }
+    bottom: SIZES.bm1,
+    marginTop: 32,
+    width: "100%",
+  },
 });
