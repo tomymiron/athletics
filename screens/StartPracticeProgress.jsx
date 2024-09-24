@@ -50,7 +50,7 @@ export default function StartPracticeProgress() {
 
       startTimeRef.current = null;
       const currDateTime = new Date().toISOString().split("T")[0] + " " + new Date().toISOString().split("T")[1].slice(0, 8);
-      await db.runAsync("INSERT INTO practice_attempts (time, date) VALUES (?,?)", [reactionDuration, currDateTime])
+      await db.runAsync("INSERT INTO practice_attempts (time, date, synced) VALUES (?,?,0)", [reactionDuration, currDateTime])
 
       setTimeout(() => {
         blockInteractionRef.current = false;
@@ -73,7 +73,7 @@ export default function StartPracticeProgress() {
     setTimeout(falseDetect, 20);
     setTimeout(falseDetect, 40);
     const currDateTime = new Date().toISOString().split("T")[0] + " " + new Date().toISOString().split("T")[1].slice(0, 8);
-    await db.runAsync("INSERT INTO practice_attempts (time, date) VALUES (?,?)", [-1, currDateTime])
+    await db.runAsync("INSERT INTO practice_attempts (time, date, synced) VALUES (?,?,0)", [-1, currDateTime])
   };
   const handleNoReaction = () => {
     setReactionTime(null);

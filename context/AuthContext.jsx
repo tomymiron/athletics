@@ -54,16 +54,16 @@ export const AuthProvider = ({children}) => {
         }
     }
 
-    const login = async (user, password) => {
+    const login = async (user, pass) => {
         try {
-            const result = await axios.post(`${Constants.expoConfig.env.api_url}/auth/login`, {user, password});
+            const result = await axios.post(`${Constants.expoConfig.env.api_url}/auth/login`, {user, pass});
+            console.log(result)
 
             setAuthState({
                 token: result.data.token,
                 user: result.data.user,
                 authenticated: true
             });
-            axios.defaults.headers.common['Authorization'] = `Barer ${result.data.token}`;
             await SecureStore.setItemAsync("TOKEN_KEY", result.data.token);
             await SecureStore.setItemAsync("USER_KEY", JSON.stringify(result.data.user));
             

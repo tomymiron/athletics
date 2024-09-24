@@ -1006,3 +1006,52 @@
 //   }
 // });
 
+
+import BackgroundFetch from "react-native-background-fetch";
+import Constants from "expo-constants";
+import * as SQLite from "expo-sqlite";
+import axios from "axios";
+
+const API_URL = Constants.expoConfig.env.api_url;
+
+export const SyncService = async () => {
+
+  const db = SQLite.useSQLiteContext();
+
+  try {
+    const unsyncedAttempts = await db.getAllAsync("SELECT * FROM practice_attempts WHERE synced = 0");
+    if (unsyncedAttempts.length === 0) return;
+
+    console.log("Pending to sync", unsyncedAttempts)
+
+    const response = await axios.post(`${API_URL}/sync`, {unsyncedAttempts});
+    if (response.status === 200) {
+      const attemptIds = unsyncedAttempts.map(attempt => attempt.id);
+      await db.runAsync("UPDATE practice_attempts SET synced = 1 WHERE id IN (?)", [attemptIds.join(',')]);
+      console.log("Sincronización completada");
+    } else {
+      console.error("Error en la sincronización", response.status);
+    }
+  } catch (error) {
+    console.error("Error al sincronizar los intentos:", error);
+  }
+};
+
+const configureBackgroundSync = () => {
+  BackgroundFetch.configure({
+      minimumFetchInterval: 15, // Intervalo mínimo en minutos
+      stopOnTerminate: false,  // Continuar cuando la app se cierre
+      startOnBoot: true,       // Iniciar al reiniciar el dispositivo
+    },
+    async (taskId) => {
+      console.log('[BackgroundFetch] start sync');
+      await SyncService();
+      BackgroundFetch.finish(taskId); // Notificar que la tarea ha terminado
+    },
+    (error) => {
+      console.log('[BackgroundFetch] failed to start', error);
+    }
+  );
+};
+
+export default configureBackgroundSync;

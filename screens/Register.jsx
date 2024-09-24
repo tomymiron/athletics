@@ -52,17 +52,17 @@ export default function Register() {
 
             <View style={styles.inputContainer}>
                 <View style={styles.inputWrapper}>
-                    <TextInput style={[styles.input, usernameError && styles.errorInput]} value={username} onChangeText={setUsername} placeholder="Username" placeholderTextColor={COLORS.gray_01} />
+                    <TextInput style={[styles.input, usernameError && styles.errorInput]} value={username} onChangeText={setUsername} placeholder="Username" placeholderTextColor={COLORS.gray_01} autoCapitalize="none" autoCorrect={false} spellCheck={false} maxLength={35}/>
                     {usernameError && <View style={styles.errorDot} />}
                 </View>
 
                 <View style={styles.inputWrapper}>
-                    <TextInput style={[styles.input, emailError && styles.errorInput]} value={email} onChangeText={setEmail} placeholder="Email" placeholderTextColor={COLORS.gray_01} keyboardType="email-address"/>
+                    <TextInput style={[styles.input, emailError && styles.errorInput]} value={email} onChangeText={setEmail} placeholder="Email" placeholderTextColor={COLORS.gray_01} keyboardType="email-address" autoCapitalize="none" autoCorrect={false} spellCheck={false} maxLength={360}/>
                     {emailError && <View style={styles.errorDot} />}
                 </View>
 
                 <View style={styles.inputWrapper}>
-                    <TextInput style={[styles.input, passError && styles.errorInput]} value={pass} onChangeText={setPass} placeholder="Password" placeholderTextColor={COLORS.gray} secureTextEntry={true} />
+                    <TextInput style={[styles.input, passError && styles.errorInput]} value={pass} onChangeText={setPass} placeholder="Password" placeholderTextColor={COLORS.gray_01} secureTextEntry={true} autoCapitalize="none" autoCorrect={false} spellCheck={false} maxLength={45}/>
                     {passError && <View style={styles.errorDot} />}
                 </View>
 
