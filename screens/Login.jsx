@@ -1,5 +1,6 @@
-import { StyleSheet, Text, View, TouchableWithoutFeedback, TouchableOpacity, TextInput } from "react-native";
+import { StyleSheet, Text, View, TouchableOpacity, TextInput } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useNavigation } from "@react-navigation/native";
 import { COLORS, SIZES } from "../constants/theme.js";
 import React, { useState } from "react";
 
@@ -8,6 +9,7 @@ export default function Login() {
     const [pass, setPass] = useState("");
 
     const insets = useSafeAreaInsets();
+    const navigation = useNavigation();
 
     return (
         <View style={[styles.mainContainer, {paddingTop: insets.top}]}>
@@ -19,7 +21,12 @@ export default function Login() {
                 <TouchableOpacity style={styles.loginBtn}>
                     <Text style={styles.loginBtnText}>Ingresar</Text>
                 </TouchableOpacity>
+
             </View>
+
+            <TouchableOpacity style={styles.registerBtn} onPress={() => navigation.navigate("Register")}>
+                <Text style={styles.loginBtnText}>Crear Cuenta</Text>
+            </TouchableOpacity>
         </View>
     )
 }
@@ -47,6 +54,14 @@ const styles = StyleSheet.create({
     },
     loginBtn: {
         backgroundColor: COLORS.white_01,
+        borderRadius: 12,
+        width: "80%",
+        padding: 12,
+    },
+    registerBtn: {
+        backgroundColor: COLORS.white_01,
+        marginLeft: "10%",
+        marginBottom: 24,
         borderRadius: 12,
         width: "80%",
         padding: 12,

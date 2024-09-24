@@ -1,5 +1,5 @@
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import Login from "../screens/Login";
+import { Login, Register} from "../screens";
 import React from "react";
 
 const Stack = createNativeStackNavigator();
@@ -10,6 +10,11 @@ export default function LoginNavigation() {
       <Stack.Screen
         name="Login"
         component={Login}
+        options={{ animation: "slide_from_right" }}
+      />
+      <Stack.Screen
+        name="Register"
+        component={Register}
         options={{ animation: "slide_from_right" }}
       />
     </Stack.Navigator>

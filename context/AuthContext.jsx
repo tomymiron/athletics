@@ -42,9 +42,9 @@ export const AuthProvider = ({children}) => {
         loadTokenUser();
     }, []);
 
-    const register = async (type, user) => {
+    const register = async (user) => {
         try {
-            return await axios.post(`${API_URL}/auth/register`, user);
+            return await axios.post(`${API_URL}/auth/register`, {newUser: user});
         }catch (err){
             if(err){
                 const { response } = err;

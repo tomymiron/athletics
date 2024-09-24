@@ -18,6 +18,7 @@ export default {
       "bundleIdentifier": "com.tomymiron.athletics"
     },
     "android": {
+      "softwareKeyboardLayoutMode": "pan",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#171921"
