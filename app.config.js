@@ -2,26 +2,26 @@ import "dotenv/config";
 
 export default {
   expo: {
-    name: "athletics",
+    name: "Athletics Labs",
     slug: "athletics",
-    version: "1.0.1",
+    version: "1.1.0",
     orientation: "portrait",
     icon: "./assets/icon.png",
     userInterfaceStyle: "light",
     "splash": {
       "image": "./assets/splash.png",
       "resizeMode": "cover",
-      "backgroundColor": "#171921"
+      "backgroundColor": "#3AD8EF"
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.tomymiron.athletics"
+      "bundleIdentifier": "com.tomymiron.athletics",
     },
     "android": {
       "softwareKeyboardLayoutMode": "pan",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#171921"
+        "backgroundColor": "#3AD8EF"
       },
       "package": "com.tomymiron.athletics"
     },
@@ -35,6 +35,7 @@ export default {
     },
     env: {
       api_url: process.env.API_URL,
+      apple_ads_token: process.env.APPLE_ADS_TOKEN,
     },
   }
 }

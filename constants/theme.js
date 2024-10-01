@@ -3,6 +3,7 @@ import { Dimensions } from "react-native";
 
 export const COLORS = {
     black_01: "#0F1113",
+    black_01_50: "#0F111380",
     black_01_25: "#0F111340",
     black_01_10: "#0F111319",
     black_02: "#171921",
@@ -18,6 +19,7 @@ export const COLORS = {
     blue_01: "#3AD8EF",
     blue_02: "#0A7B8B",
     blue_03: "#749AED",
+    blue_01_50: "#3AD9EF80",
     blue_01_25: "#3AD9EF40",
     blue_01_15: "#3AD9EF26",
     blue_01_80: "#3AD9EFCC",

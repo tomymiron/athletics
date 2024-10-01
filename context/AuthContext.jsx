@@ -57,7 +57,6 @@ export const AuthProvider = ({children}) => {
     const login = async (user, pass) => {
         try {
             const result = await axios.post(`${Constants.expoConfig.env.api_url}/auth/login`, {user, pass});
-            console.log(result)
 
             setAuthState({
                 token: result.data.token,
@@ -79,20 +78,12 @@ export const AuthProvider = ({children}) => {
     };
 
     const logout = async () => {
-        //  Delete token and user from storage
         await SecureStore.deleteItemAsync("TOKEN_KEY");
         await SecureStore.deleteItemAsync("USER_KEY");
-        await SecureStore.deleteItemAsync("tokenqr");
-        await SecureStore.deleteItemAsync("tickets");
-        await SecureStore.deleteItemAsync("follows");
+        await SecureStore.deleteItemAsync("lastSyncedAt");
 
-        // Update HTTP Headers
-        axios.defaults.headers.common["Authorization"] = "";
-
-        // Reset all Querys
         queryClient.clear()
 
-        // Reset auth state
         setAuthState({
             token: null,
             user: null,

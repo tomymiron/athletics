@@ -1,19 +1,61 @@
 import { StyleSheet, Text, View, TouchableWithoutFeedback, TouchableOpacity } from "react-native";
+import { useNavigation, useIsFocused } from "@react-navigation/native";
+import { useSyncAttemptsWithServer } from "../services/syncService.js";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { BLURHASH, COLORS, SIZES } from "../constants/theme.js";
-import { useNavigation } from "@react-navigation/native";
 import SwipeButton from "../components/SwipeButton.jsx";
 import { LinearGradient } from "expo-linear-gradient";
+import { useAuth } from "../context/AuthContext.jsx";
+import { makeRequest } from "../constants/axios.js";
+import React, { useEffect, useState } from "react";
+import { useSQLiteContext } from "expo-sqlite";
 import Icon from "../constants/Icon.jsx";
-import React, { useState } from "react";
 import { Image } from "expo-image";
 
 import background01 from "../assets/images/background01.png";
 
 export default function StartPractice() {
+  const [globalRankingPos, setGlobalRankingPos] = useState(null);
+  const [amountAttempts, setAmountAttempts] = useState(0);
+  const [falseAttempts, setFalseAttempts] = useState(0);
   const [isSwiping, setIsSwiping] = useState(false);
+
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
+  const isFocused = useIsFocused();
+  const { authState } = useAuth();
+  const db = useSQLiteContext();
+
+  useEffect(() => {
+    const getStats = async () => {
+      const stats01 = await db.getFirstAsync(`SELECT count(id) as "amount" FROM practice_attempts`,);
+      const stats02 = await db.getFirstAsync(`SELECT COUNT(id) as "amount" FROM practice_attempts WHERE time != -1`);
+      const validStarts = stats01.amount > 0 ? (stats02.amount / stats01.amount) * 100 : 0;
+      setAmountAttempts(stats01.amount);
+      setFalseAttempts(parseInt(validStarts));
+    }
+    getStats();
+
+    setTimeout(() => {
+      getStats();
+    }, 2000);
+  }, [isFocused]);
+
+
+  const getRankingGlobalPos = async () => {
+    try {
+      useSyncAttemptsWithServer();
+      const res = await makeRequest.get("/practice/ranking/global/pos", { headers: { authorization: authState.token }}); 
+      setGlobalRankingPos(res.data)
+    } catch (err) {
+      console.log("Error al obtener")
+    }
+  }
+
+  useEffect(() => {
+    getRankingGlobalPos();
+  }, [isFocused])
+
 
   return (
     <TouchableWithoutFeedback onPress={() => {if(!isSwiping)navigation.navigate("PracticeProgressScreen");}}>
@@ -39,23 +81,30 @@ export default function StartPractice() {
         <View style={[styles.mainContainer, {paddingTop: insets.top + 8}]}>
 
           <View style={styles.headerContainer}>
-            <View style={styles.rankingContainer}>
-              <TouchableOpacity style={styles.rankingBtn}>
-                <Icon name="world" size={SIZES.i2} color={COLORS.black_01}/>
-              </TouchableOpacity>
-              <View style={styles.rankingIndicatorContainer}>
-                <Text style={styles.rankingTitle}>Ranking</Text>
-                <View style={styles.rankingTopContainer}>
-                  <Text style={styles.rankingTop}>102</Text>
-                  <View style={styles.rankingPos}>
-                    <Icon name="pos" size={12}/>
-                  </View>
+            <TouchableWithoutFeedback onPress={() => navigation.navigate("PracticeRankingScreen")}>
+              <View style={styles.rankingContainer}>
+                <TouchableOpacity style={styles.rankingBtn} onPress={() => navigation.navigate("PracticeRankingScreen")}>
+                  <Icon name="world" size={SIZES.i2} color={COLORS.black_01}/>
+                </TouchableOpacity>
+                <View style={styles.rankingIndicatorContainer}>
+                  <Text style={styles.rankingTitle}>Ranking</Text>
+                  {globalRankingPos == null ? 
+                  <Text style={styles.rankingTop}>-</Text>
+                  :
+                  <View style={styles.rankingTopContainer}>
+                    <Text style={styles.rankingTop}>{globalRankingPos.ranking}</Text>
+                    <View style={styles.rankingPos}>
+                      <Icon name="pos" size={12}/>
+                    </View>
+                  </View>}
                 </View>
               </View>
-            </View>
-            <View style={styles.athleticsLabsContainer}>
-              <Text style={styles.athleticsLabs}>Athletics <Text style={styles.labBolder}>Labs</Text></Text>
-            </View>
+            </TouchableWithoutFeedback>
+            <TouchableWithoutFeedback>
+              <View style={styles.athleticsLabsContainer}>
+                <Text style={styles.athleticsLabs}>Athletics <Text style={styles.labBolder}>Labs</Text></Text>
+              </View>
+            </TouchableWithoutFeedback>
           </View>
 
           <View style={styles.indicationsContainer}>
@@ -70,19 +119,21 @@ export default function StartPractice() {
             <View style={styles.cube02}/>
             <View style={styles.cube03}/>
           </View>
-          <View style={styles.statsContainer}>
-            <TouchableOpacity style={styles.statsBtn} onPress={() => navigation.navigate("PracticeStatsScreen")}>
-              <Icon name="arrow-right-m" color={COLORS.black_01} size={SIZES.i3}/>
-            </TouchableOpacity>
-            <Text style={styles.statsTitle}>Pruebas Realizadas</Text>
-            <View style={styles.statsSubContainer}>
-              <Text style={styles.stats}>234</Text>
-              <View style={styles.statsIcon}>
-                <Icon name="flag" size={SIZES.i2}/>
+          <TouchableWithoutFeedback onPress={() => navigation.navigate("PracticeStatsScreen")}>
+            <View style={styles.statsContainer}>
+              <TouchableOpacity style={styles.statsBtn} onPress={() => navigation.navigate("PracticeStatsScreen")}>
+                <Icon name="arrow-right-m" color={COLORS.black_01} size={SIZES.i3}/>
+              </TouchableOpacity>
+              <Text style={styles.statsTitle}>Pruebas Realizadas</Text>
+              <View style={styles.statsSubContainer}>
+                <Text style={styles.stats}>{amountAttempts}</Text>
+                <View style={styles.statsIcon}>
+                  <Icon name="flag" size={SIZES.i2}/>
+                </View>
               </View>
+              <Text style={styles.subStats}>El <Text style={styles.subStatsBolder}>{falseAttempts}%</Text> de las pruebas fueron validas</Text>
             </View>
-            <Text style={styles.subStats}>El <Text style={styles.subStatsBolder}>100%</Text> de las pruebas fueron validas</Text>
-          </View>
+          </TouchableWithoutFeedback>
 
           <View style={styles.configurationContainer}>
             <SwipeButton onToggle={() => navigation.navigate("PracticeConfigScreen")} setIsSwiping={setIsSwiping} text="Configuracion"/>

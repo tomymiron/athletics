@@ -1,4 +1,4 @@
-import { StyleSheet, Text, TouchableOpacity, View, Dimensions, Platform, ScrollView } from "react-native";
+import { StyleSheet, Text, TouchableOpacity, View, Dimensions, Platform, ScrollView, Alert } from "react-native";
 import { useStartConfig } from "../context/StartPracticeContext.jsx";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
@@ -35,9 +35,9 @@ export default function StartPracticeConfig() {
   const [variant, setVariant] = useState(defaultConfig.voice.variant);
 
   const { startConfig, updateConfig } = useStartConfig();
+  const { authState, logout } = useAuth();
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
-  const { logout } = useAuth();
 
   useEffect(() => {
     if (onYourMarksTimeMax < onYourMarksTimeMin) {
@@ -75,8 +75,18 @@ export default function StartPracticeConfig() {
   }, [onYourMarksTimeMax, onYourMarksTimeMin, setTimeMax, setTimeMin, lenguage, variant]);
   // --- StartUp Config and Update ---
 
+  const logoutConfirmation = () => {
+    Alert.alert("Confirmación", "¿Estás seguro de que deseas salir de tu cuenta?",
+      [
+        { text: "Cancelar", style: "cancel" },
+        { text: "Aceptar", onPress: () => logout(), style: "default" }
+      ],
+      { cancelable: false }
+    );
+  };
+
   return (
-    <ScrollView style={[styles.mainContainer, {paddingTop: insets.top}]}>
+    <ScrollView style={[styles.mainContainer, {paddingTop: insets.top + 12}]}>
 
       <TouchableOpacity style={[styles.backButton, {backgroundColor: COLORS.black_01}]} onPress={() => navigation.navigate("PracticeScreen")}>
         <Icon name="arrow-left" color={COLORS.blue_01} size={SIZES.i3}/>
@@ -87,9 +97,9 @@ export default function StartPracticeConfig() {
       <View style={styles.boxContainer01}>
         <View style={styles.accountContainer}>
           <Text style={styles.accountTitle}>Tu cuenta</Text>
-          <Text style={styles.account}>tomymiron@gmail.com</Text>
+          <Text style={styles.account}>{authState.user.email}</Text>
         </View>
-        <TouchableOpacity style={styles.accountIcon} onPress={() => logout()}>
+        <TouchableOpacity style={styles.accountIcon} onPress={logoutConfirmation}>
           <Icon name="logout" color={COLORS.red_01} size={SIZES.i2}/>
         </TouchableOpacity>
       </View>
@@ -148,7 +158,7 @@ export default function StartPracticeConfig() {
               onValueChange={(value) => setOnYourMarksTimeMax(value)}
               maximumTrackTintColor={COLORS.black_02}
               minimumTrackTintColor={COLORS.blue_01}
-              minimumValue={onYourMarksTimeMin}
+              minimumValue={onYourMarksTimeMin + 1.5}
               thumbTintColor={COLORS.blue_01}
               value={onYourMarksTimeMax}
               maximumValue={15}
@@ -191,7 +201,7 @@ export default function StartPracticeConfig() {
               maximumTrackTintColor={COLORS.black_02}
               minimumTrackTintColor={COLORS.blue_01}
               thumbTintColor={COLORS.blue_01}
-              minimumValue={setTimeMin}
+              minimumValue={setTimeMin + 1.5}
               value={setTimeMax}
               maximumValue={5}
               step={0.5}

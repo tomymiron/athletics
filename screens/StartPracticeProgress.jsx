@@ -5,8 +5,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import React, { useState, useEffect, useRef } from "react";
 import { COLORS, SIZES } from "../constants/theme.js";
 import { Accelerometer } from "expo-sensors";
-import * as SQLite from "expo-sqlite";
 import Icon from "../constants/Icon.jsx";
+import * as SQLite from "expo-sqlite";
 import { Audio } from "expo-av";
 
 const playSound = async (soundFile) => {
@@ -163,7 +163,7 @@ export default function StartPracticeProgress() {
       if (!blockInteractionRef.current && (status == 2 || status == 3)){if (status === 3) handleReaction();else handleFalseStart();} else if (!blockInteractionRef.current && status != 1)startRace();}}>
       <View style={[styles.mainContainer, {backgroundColor: status == 1 || status == 2 || status == 4 ? COLORS.black_01 : status == 3 ? COLORS.blue_01 : status == 5 ? COLORS.red_01 : COLORS.white_02}]}>
         {(status == 4 || status == 5 || status == 6) &&
-          <TouchableOpacity style={[styles.backButton, {backgroundColor: status == 4 ? COLORS.blue_01 : COLORS.black_01, top: insets.top}]} onPress={() => navigation.navigate("PracticeScreen")}>
+          <TouchableOpacity style={[styles.backButton, {backgroundColor: status == 4 ? COLORS.blue_01 : COLORS.black_01, top: insets.top + 12}]} onPress={() => navigation.navigate("PracticeScreen")}>
             <Icon name="arrow-left" color={status == 4 ? COLORS.black_01 : COLORS.white_01} size={SIZES.i3}/>
           </TouchableOpacity>
         }
