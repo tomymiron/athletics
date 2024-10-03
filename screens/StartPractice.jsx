@@ -81,9 +81,9 @@ export default function StartPractice() {
         <View style={[styles.mainContainer, {paddingTop: insets.top + 8}]}>
 
           <View style={styles.headerContainer}>
-            <TouchableWithoutFeedback onPress={() => navigation.navigate("PracticeRankingScreen")}>
+            <TouchableWithoutFeedback onPress={() => navigation.navigate("PracticeRankingScreen", { ads: true })}>
               <View style={styles.rankingContainer}>
-                <TouchableOpacity style={styles.rankingBtn} onPress={() => navigation.navigate("PracticeRankingScreen")}>
+                <TouchableOpacity style={styles.rankingBtn} onPress={() => navigation.navigate("PracticeRankingScreen", { ads: true })}>
                   <Icon name="world" size={SIZES.i2} color={COLORS.black_01}/>
                 </TouchableOpacity>
                 <View style={styles.rankingIndicatorContainer}>
@@ -135,9 +135,26 @@ export default function StartPractice() {
             </View>
           </TouchableWithoutFeedback>
 
-          <View style={styles.configurationContainer}>
-            <SwipeButton onToggle={() => navigation.navigate("PracticeConfigScreen")} setIsSwiping={setIsSwiping} text="Configuracion"/>
-          </View>
+
+          <LinearGradient style={styles.configurationContainer} colors={[COLORS.blue_01, COLORS.white_01]} start={[0, 0]} end={[1, 0]}>
+            <TouchableOpacity style={styles.configBtn} onPress={() => navigation.navigate("PracticeConfigScreen")}>
+              <View style={{width: 40}}>
+                <Icon name="settings" color={COLORS.black_01} size={SIZES.i2}/>
+              </View>
+              <Text style={styles.configText}>Configuracion</Text>
+              <View style={{flexDirection: "row", width: 40, justifyContent: "flex-end"}}>
+                <View style={{marginLeft: -12, opacity: .1}}>
+                    <Icon name="arrow-right-l" color={COLORS.black_01} size={SIZES.i3}/>
+                </View>
+                <View style={{marginLeft: -12, opacity: .5}}>
+                    <Icon name="arrow-right-l" color={COLORS.black_01} size={SIZES.i3}/>
+                </View>
+                <View style={{marginLeft: -12}}>
+                    <Icon name="arrow-right-l" color={COLORS.black_01} size={SIZES.i3}/>
+                </View>
+              </View>
+            </TouchableOpacity>
+          </LinearGradient>
 
         </View>
       </View>
@@ -367,10 +384,29 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_black",
   },
   configurationContainer: {
+    backgroundColor: COLORS.white_01,
     justifyContent: "center",
     alignItems: "center",
     bottom: SIZES.bm1,
+    borderRadius: 100,
     marginTop: 32,
     width: "100%",
+    padding: 6,
   },
+  configBtn: {
+    borderColor: COLORS.black_01,
+    justifyContent: "space-between",
+    alignItems: "center",
+    flexDirection: "row",
+    borderRadius: 50,
+    borderWidth: 3,
+    width: "100%",
+    padding: 12,
+  },
+  configText: {
+    fontFamily: "Inter_semiBold",
+    color: COLORS.black_01,
+    alignSelf: "center",
+    fontSize: SIZES.f4,
+  }
 });

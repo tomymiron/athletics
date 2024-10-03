@@ -18,6 +18,7 @@ import { COLORS } from "./constants/theme.js";
 import { StatusBar } from "expo-status-bar";
 import * as SQLite from "expo-sqlite";
 import { useFonts } from "expo-font";
+import { requestTrackingPermissionsAsync } from "expo-tracking-transparency";
 
 const initializeDatabase = async () => {
   const db = await openDatabaseAsync('athletics.db');
@@ -46,6 +47,14 @@ const initializeDatabase = async () => {
 export default function App() { 
   const queryClient = new QueryClient();
   enableScreens();
+  useEffect(() => {
+    (async () => {
+      const { status } = await requestTrackingPermissionsAsync();
+      // if (status === 'granted') {
+      //   console.log('Yay! I have user permission to track data');
+      // }
+    })();
+  }, []);
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
@@ -64,7 +73,6 @@ export default function App() {
     </GestureHandlerRootView>
   );
 }
-
 
 export function Layout() {
   const [splashShowed, setSplashShowed] = useState(false);
@@ -113,6 +121,8 @@ export function Layout() {
   if(authState?.authenticated == false){
     deleteData();
   }
+
+  
 
   if(authState?.authenticated == null){
     return <View style={{width: "100%", height: "100%", justifyContent: "center", alignItems: "center", backgroundColor: COLORS.black_01}}>

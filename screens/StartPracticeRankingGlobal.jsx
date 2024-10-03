@@ -87,7 +87,7 @@ export default function StartPracticeRankingGlobal() {
                   </View>
                 </View>
                 <View style={item.user_id == authState.user.id ? styles.ownRankingItemInner : styles.rankingItemInner}>
-                  <Text style={[styles.rankingUsername, {color: item.user_id == authState.user.id ? COLORS.black_01 : COLORS.blue_01}]}>{item.username}</Text>
+                  <Text style={[styles.rankingUsername, {color: item.user_id == authState.user.id ? COLORS.black_01 : COLORS.blue_01}]}>{item.username.length > 18 ? item.username.slice(0,18) + "..." : item.username}</Text>
                   <Text style={[styles.rankingTime, {color: item.user_id == authState.user.id ? COLORS.black_01 : COLORS.blue_01}]}>{parseInt(item.avg_time)}ms</Text>
                 </View>
               </View>)

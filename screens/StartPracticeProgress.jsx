@@ -3,7 +3,9 @@ import { useNavigation, useIsFocused } from "@react-navigation/native";
 import { useStartConfig } from "../context/StartPracticeContext.jsx";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import React, { useState, useEffect, useRef } from "react";
+import { AdComponent01Async } from "../components/Ads.jsx";
 import { COLORS, SIZES } from "../constants/theme.js";
+import * as SecureStore from "expo-secure-store";
 import { Accelerometer } from "expo-sensors";
 import Icon from "../constants/Icon.jsx";
 import * as SQLite from "expo-sqlite";
@@ -11,7 +13,19 @@ import { Audio } from "expo-av";
 
 const playSound = async (soundFile) => {
   const { sound } = await Audio.Sound.createAsync(soundFile);
+  await sound.stopAsync();
   await sound.playAsync();
+};
+
+const manageAttempts = async () => {
+  let attemptCounter = parseInt(await SecureStore.getItemAsync("attemptCounter")) || 0;
+  attemptCounter += 1;
+  await SecureStore.setItemAsync("attemptCounter", attemptCounter.toString());
+  return attemptCounter;
+};
+
+const resetAttempts = async () => {
+  await SecureStore.setItemAsync("attemptCounter", "0");
 };
 
 export default function StartPracticeProgress() {
@@ -38,26 +52,32 @@ export default function StartPracticeProgress() {
       startRace();
     }
   }, [isFocused]);
-  
+ 
   // --- Handlers For Stop Race ---
   const handleReaction = async () => {
     if (startTimeRef.current && status != 5) {
+      blockInteractionRef.current = true;
       const reactionDuration = Date.now() - startTimeRef.current;
       setReactionTime(reactionDuration);
       stopAccelerometer();
       stopElapsedTime();
       setStatus(4);
 
+      const attemptCounter = await manageAttempts();
+      console.log(attemptCounter);
+      if (attemptCounter >= 5 && attemptCounter >= 18) {
+        await AdComponent01Async();
+        await resetAttempts();
+        blockInteractionRef.current = false;
+      }else setTimeout(() => {blockInteractionRef.current = false}, 100);
+
       startTimeRef.current = null;
       const currDateTime = new Date().toISOString().split("T")[0] + " " + new Date().toISOString().split("T")[1].slice(0, 8);
       await db.runAsync("INSERT INTO practice_attempts (time, date, synced) VALUES (?,?,0)", [reactionDuration, currDateTime])
-
-      setTimeout(() => {
-        blockInteractionRef.current = false;
-      }, 100);
-    }
+    } 
   };
   const handleFalseStart = async () => {
+    blockInteractionRef.current = true;
     const falseDetect = () => {
       startTimeRef.current = null;  
       stopAccelerometer();
@@ -72,6 +92,14 @@ export default function StartPracticeProgress() {
     falseDetect();
     setTimeout(falseDetect, 20);
     setTimeout(falseDetect, 40);
+
+    const attemptCounter = await manageAttempts();
+    console.log(attemptCounter);
+    if (attemptCounter >= 5 && attemptCounter >= 18) {
+      await AdComponent01Async();
+      await resetAttempts();
+      blockInteractionRef.current = false;
+    }else setTimeout(() => {blockInteractionRef.current = false}, 100);
     const currDateTime = new Date().toISOString().split("T")[0] + " " + new Date().toISOString().split("T")[1].slice(0, 8);
     await db.runAsync("INSERT INTO practice_attempts (time, date, synced) VALUES (?,?,0)", [-1, currDateTime])
   };
@@ -116,6 +144,11 @@ export default function StartPracticeProgress() {
   // --- Auxiliar For Start Race ---
 
   const startRace = async () => {
+    if (timeoutNoReactionRef.current) clearTimeout(timeoutNoReactionRef.current);
+    if (timeoutRaceRef.current) clearTimeout(timeoutRaceRef.current);
+    if (timeoutShotRef.current) clearTimeout(timeoutShotRef.current);
+    if (timeoutSetRef.current) clearTimeout(timeoutSetRef.current);
+    if (intervalIdRef.current) clearInterval(intervalIdRef.current);
     setStatus(1);
 
     const files1 = [
@@ -158,17 +191,62 @@ export default function StartPracticeProgress() {
     }, onYourMarksRandomTime);
   };
 
+  const handlePress = () => {
+    if (!blockInteractionRef.current && (status == 2 || status == 3)) {
+      if (status === 3) handleReaction();
+      else handleFalseStart();
+    } else if (!blockInteractionRef.current && status != 1) {
+      startRace();
+    }
+  }
+
   return (
-    <TouchableWithoutFeedback onPress={() => {
-      if (!blockInteractionRef.current && (status == 2 || status == 3)){if (status === 3) handleReaction();else handleFalseStart();} else if (!blockInteractionRef.current && status != 1)startRace();}}>
-      <View style={[styles.mainContainer, {backgroundColor: status == 1 || status == 2 || status == 4 ? COLORS.black_01 : status == 3 ? COLORS.blue_01 : status == 5 ? COLORS.red_01 : COLORS.white_02}]}>
-        {(status == 4 || status == 5 || status == 6) &&
-          <TouchableOpacity style={[styles.backButton, {backgroundColor: status == 4 ? COLORS.blue_01 : COLORS.black_01, top: insets.top + 12}]} onPress={() => navigation.navigate("PracticeScreen")}>
-            <Icon name="arrow-left" color={status == 4 ? COLORS.black_01 : COLORS.white_01} size={SIZES.i3}/>
+    <TouchableWithoutFeedback onPress={handlePress}>
+      <View
+        style={[
+          styles.mainContainer,
+          {
+            backgroundColor:
+              status == 1 || status == 2 || status == 4
+                ? COLORS.black_01
+                : status == 3
+                ? COLORS.blue_01
+                : status == 5
+                ? COLORS.red_01
+                : COLORS.white_02,
+          },
+        ]}
+      >
+        {(status == 4 || status == 5 || status == 6) && (
+          <TouchableOpacity
+            style={[
+              styles.backButton,
+              {
+                backgroundColor: status == 4 ? COLORS.blue_01 : COLORS.black_01,
+                top: insets.top + 12,
+              },
+            ]}
+            onPress={() => navigation.navigate("PracticeScreen")}
+          >
+            <Icon
+              name="arrow-left"
+              color={status == 4 ? COLORS.black_01 : COLORS.white_01}
+              size={SIZES.i3}
+            />
           </TouchableOpacity>
-        }
+        )}
         <View style={styles.container}>
-          <Text style={status == 1 || status == 2 ? styles.mainText01 : status == 3 ? styles.mainText02 : status == 4 ? styles.mainText03 : styles.mainText04}>
+          <Text
+            style={
+              status == 1 || status == 2
+                ? styles.mainText01
+                : status == 3
+                ? styles.mainText02
+                : status == 4
+                ? styles.mainText03
+                : styles.mainText04
+            }
+          >
             {status == 1
               ? "¡En sus marcas!"
               : status == 2
@@ -185,7 +263,9 @@ export default function StartPracticeProgress() {
             <Text style={styles.reactionTime}>{reactionTime}ms</Text>
           )}
           {status == 3 && (
-            <Text style={styles.elapsedTime}>Tiempo transcurrido: {elapsedTime.toFixed(0)}ms</Text>
+            <Text style={styles.elapsedTime}>
+              Tiempo transcurrido: {elapsedTime.toFixed(0)}ms
+            </Text>
           )}
         </View>
       </View>

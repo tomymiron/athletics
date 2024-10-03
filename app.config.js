@@ -4,7 +4,7 @@ export default {
   expo: {
     name: "Athletics Labs",
     slug: "athletics",
-    version: "1.1.0",
+    version: "1.2.0",
     orientation: "portrait",
     icon: "./assets/icon.png",
     userInterfaceStyle: "light",
@@ -37,5 +37,10 @@ export default {
       api_url: process.env.API_URL,
       apple_ads_token: process.env.APPLE_ADS_TOKEN,
     },
+    plugins: [
+      ["expo-build-properties", { "ios": { "useFrameworks": "static" }}],
+      ["react-native-google-mobile-ads", { "iosAppId": "ca-app-pub-3405311126818992~3325664858", "androidAppId": "ca-app-pub-3405311126818992~8463215548", "userTrackingUsageDescription": "This identifier will be used to deliver personalized ads to you."}],
+      ["expo-tracking-transparency", { "userTrackingPermission": "This identifier will be used to deliver personalized ads to you." }]
+    ]
   }
 }

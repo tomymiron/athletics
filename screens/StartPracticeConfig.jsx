@@ -40,13 +40,13 @@ export default function StartPracticeConfig() {
   const insets = useSafeAreaInsets();
 
   useEffect(() => {
-    if (onYourMarksTimeMax < onYourMarksTimeMin) {
-      setOnYourMarksTimeMax(onYourMarksTimeMin);
+    if (onYourMarksTimeMax < onYourMarksTimeMin + 1.5) {
+      setOnYourMarksTimeMax(onYourMarksTimeMin + 1.5);
     }
   }, [onYourMarksTimeMax, onYourMarksTimeMin]);
   useEffect(() => {
-    if (setTimeMax < setTimeMin) {
-      setSetTimeMax(setTimeMin);
+    if (setTimeMax < setTimeMin + 1.5) {
+      setSetTimeMax(setTimeMin + 1.5);
     }
   }, [setTimeMin, setTimeMax]);
 
@@ -97,7 +97,7 @@ export default function StartPracticeConfig() {
       <View style={styles.boxContainer01}>
         <View style={styles.accountContainer}>
           <Text style={styles.accountTitle}>Tu cuenta</Text>
-          <Text style={styles.account}>{authState.user.email}</Text>
+          <Text style={styles.account}>{authState.user.email.length > 24 ? authState.user.email.slice(0, 24) + "..." : authState.user.email}</Text>
         </View>
         <TouchableOpacity style={styles.accountIcon} onPress={logoutConfirmation}>
           <Icon name="logout" color={COLORS.red_01} size={SIZES.i2}/>
@@ -212,6 +212,8 @@ export default function StartPracticeConfig() {
           </View>
         </View>
       </View>
+      <View style={{height: 200}}/>
+
     </ScrollView>
   );
 }

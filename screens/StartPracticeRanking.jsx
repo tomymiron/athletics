@@ -1,9 +1,12 @@
 import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { AdEventType, InterstitialAd, TestIds } from "react-native-google-mobile-ads";
+import { useNavigation, useIsFocused } from "@react-navigation/native";
 import { useSyncAttemptsWithServer } from "../services/syncService";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useNavigation } from "@react-navigation/native";
 import { COLORS, SIZES } from "../constants/theme";
 import React, { useEffect, useState } from "react";
+import { AdComponent01 } from "../components/Ads";
+import * as SecureStore from "expo-secure-store";
 import { makeRequest } from "../constants/axios";
 import { formatDate } from "../constants/format";
 import { useQuery } from "@tanstack/react-query";
@@ -13,7 +16,14 @@ import Icon from "../constants/Icon";
 
 const regularExpression = /^[a-zA-Z0-9_]+$/;
 
-export default function StartPracticeRanking() {
+const manageCounter = async () => {
+  let counter = parseInt(await SecureStore.getItemAsync("rankingCounter")) || 1;
+  counter += 1;
+  await SecureStore.setItemAsync("rankingCounter", counter.toString());
+  return counter;
+};
+
+export default function StartPracticeRanking({ route }) {
   const [usernameStatus, setUsernameStatus] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
   const [username, setUsername] = useState("");
@@ -21,6 +31,7 @@ export default function StartPracticeRanking() {
   const { authState, editProfile } = useAuth();
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
+  const isFocused = useIsFocused();
   const db = useSQLiteContext();
 
   const onRefresh = async () => {
@@ -84,6 +95,16 @@ export default function StartPracticeRanking() {
     }
   }
   // --- Username Handling ---
+
+  useEffect(() => {
+    const handleAdDisplay = async () => {
+      if (route?.params?.ads && isFocused) {
+        const counter = await manageCounter();
+        if (counter % 3 === 0) AdComponent01();
+      }
+    };
+    handleAdDisplay();
+  }, [isFocused]);
 
   return (
     <ScrollView style={[styles.mainContainer, {paddingTop: insets.top + 12}]} showsVerticalScrollIndicator={false} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.black_01} colors={[COLORS.blue_01]} progressBackgroundColor={COLORS.black_01}/>}>
@@ -174,32 +195,32 @@ export default function StartPracticeRanking() {
         }
         </View>
 
-        {ranking?.ownMonthly?.best_time != null && ranking?.ownMonthly?.best_time != null &&
+        {ranking?.monthlyBattle?.length > 1 &&
         <View style={styles.box03Ranking}>
-          <View key={ranking?.monthlyBattle[0]?.user_id} style={ranking?.monthlyBattle[0]?.user_id == authState.user.id ? styles.ownRankingItem : styles.rankingItem}>
+          <View key={ranking.monthlyBattle[0].user_id} style={ranking.monthlyBattle[0].user_id == authState.user.id ? styles.ownRankingItem : styles.rankingItem}>
             <View style={styles.rankingPosContainer}>
-              <Text style={[styles.rankingPos, {color: ranking?.monthlyBattle[0]?.user_id == authState.user.id ? COLORS.blue_01 : COLORS.black_01}]}>{ranking.monthlyBattle[0].ranking}</Text>
+              <Text style={[styles.rankingPos, {color: ranking.monthlyBattle[0].user_id == authState.user.id ? COLORS.blue_01 : COLORS.black_01}]}>{ranking.monthlyBattle[0].ranking}</Text>
               <View style={styles.rankingPosIcon}>
-                <Icon name="pos" color={ranking?.monthlyBattle[0]?.user_id == authState.user.id ? COLORS.blue_01 : COLORS.black_01} size={SIZES.i4}/>
+                <Icon name="pos" color={ranking.monthlyBattle[0].user_id == authState.user.id ? COLORS.blue_01 : COLORS.black_01} size={SIZES.i4}/>
               </View>
             </View>
-            <View style={ranking?.monthlyBattle[0]?.user_id == authState.user.id ? styles.ownRankingItemInner : styles.rankingItemInner}>
-              <Text style={[styles.rankingUsername, {color: ranking?.monthlyBattle[0]?.user_id == authState.user.id ? COLORS.black_01 : COLORS.blue_01}]}>{ranking?.monthlyBattle[0].username}</Text>
-              <Text style={[styles.rankingTime, {color: ranking?.monthlyBattle[0]?.user_id == authState.user.id ? COLORS.black_01 : COLORS.blue_01}]}>{parseInt(ranking.monthlyBattle[0].best_time)}ms</Text>
+            <View style={ranking.monthlyBattle[0].user_id == authState.user.id ? styles.ownRankingItemInner : styles.rankingItemInner}>
+              <Text style={[styles.rankingUsername, {color: ranking.monthlyBattle[0].user_id == authState.user.id ? COLORS.black_01 : COLORS.blue_01}]}>{ranking.monthlyBattle[0].username.length > 18 ? ranking.monthlyBattle[0].username.slice(0,18) + "..." : ranking.monthlyBattle[0].username}</Text>
+              <Text style={[styles.rankingTime, {color: ranking.monthlyBattle[0].user_id == authState.user.id ? COLORS.black_01 : COLORS.blue_01}]}>{parseInt(ranking.monthlyBattle[0].best_time)}ms</Text>
             </View>
           </View>
 
           <Text style={styles.battleText}>Batalla Actual</Text>
 
-          <View key={ranking?.monthlyBattle[1]?.user_id} style={ranking?.monthlyBattle[1]?.user_id == authState.user.id ? styles.ownRankingItem : styles.rankingItem}>
+          <View key={ranking.monthlyBattle[1].user_id} style={ranking.monthlyBattle[1].user_id == authState.user.id ? styles.ownRankingItem : styles.rankingItem}>
             <View style={styles.rankingPosContainer}>
-              <Text style={[styles.rankingPos, {color: ranking?.monthlyBattle[1]?.user_id == authState.user.id ? COLORS.blue_01 : COLORS.black_01}]}>{ranking.monthlyBattle[1].ranking}</Text>
+              <Text style={[styles.rankingPos, {color: ranking.monthlyBattle[1].user_id == authState.user.id ? COLORS.blue_01 : COLORS.black_01}]}>{ranking.monthlyBattle[1].ranking}</Text>
               <View style={styles.rankingPosIcon}>
-                <Icon name="pos" color={ranking?.monthlyBattle[1]?.user_id == authState.user.id ? COLORS.blue_01 : COLORS.black_01} size={SIZES.i4}/>
+                <Icon name="pos" color={ranking.monthlyBattle[1].user_id == authState.user.id ? COLORS.blue_01 : COLORS.black_01} size={SIZES.i4}/>
               </View>
             </View>
-            <View style={ranking?.monthlyBattle[1]?.user_id == authState.user.id ? styles.ownRankingItemInner : styles.rankingItemInner}>
-              <Text style={[styles.rankingUsername, {color: ranking?.monthlyBattle[1]?.user_id == authState.user.id ? COLORS.black_01 : COLORS.blue_01}]}>{ranking.monthlyBattle[1].username}</Text>
+            <View style={ranking?.monthlyBattle[1].user_id == authState.user.id ? styles.ownRankingItemInner : styles.rankingItemInner}>
+              <Text style={[styles.rankingUsername, {color: ranking?.monthlyBattle[1]?.user_id == authState.user.id ? COLORS.black_01 : COLORS.blue_01}]}>{ranking.monthlyBattle[1].username.length > 18 ? ranking.monthlyBattle[1].username.slice(0,18) + "..." : ranking.monthlyBattle[1].username}</Text>
               <Text style={[styles.rankingTime, {color: ranking?.monthlyBattle[1]?.user_id == authState.user.id ? COLORS.black_01 : COLORS.blue_01}]}>{parseInt(ranking.monthlyBattle[1].best_time)}ms</Text>
             </View>
           </View>
