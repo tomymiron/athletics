@@ -1,5 +1,4 @@
 import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
-import { AdEventType, InterstitialAd, TestIds } from "react-native-google-mobile-ads";
 import { useNavigation, useIsFocused } from "@react-navigation/native";
 import { useSyncAttemptsWithServer } from "../services/syncService";
 import { useSafeAreaInsets } from "react-native-safe-area-context";

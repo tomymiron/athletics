@@ -1,4 +1,4 @@
-import { StartPractice, StartPracticeConfig, StartPracticeProgress, StartPracticeRanking, StartPracticeRankingGlobal, StartPracticeRankingMonthly, StartPracticeStats } from "../screens";
+import { NewRoom, Rooms, StartPractice, StartPracticeConfig, StartPracticeProgress, StartPracticeRanking, StartPracticeRankingGlobal, StartPracticeRankingMonthly, StartPracticeStats } from "../screens";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import React from "react";
 
@@ -40,6 +40,16 @@ export default function ClientNavigation() {
       <Stack.Screen
         name="PracticeRankingMonthlyScreen"
         component={StartPracticeRankingMonthly}
+        options={{ animation: "slide_from_right" }}
+      />
+      <Stack.Screen
+        name="RoomsScreen"
+        component={Rooms}
+        options={{ animation: "slide_from_right" }}
+      />
+      <Stack.Screen
+        name="NewRoomScreen"
+        component={NewRoom}
         options={{ animation: "slide_from_right" }}
       />
     </Stack.Navigator>

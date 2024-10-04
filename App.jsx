@@ -19,6 +19,7 @@ import { StatusBar } from "expo-status-bar";
 import * as SQLite from "expo-sqlite";
 import { useFonts } from "expo-font";
 import { requestTrackingPermissionsAsync } from "expo-tracking-transparency";
+import { RoomProvider } from "./context/RoomContext.jsx";
 
 const initializeDatabase = async () => {
   const db = await openDatabaseAsync('athletics.db');
@@ -61,12 +62,14 @@ export default function App() {
       <QueryClientProvider client={queryClient}>
         <SQLiteProvider databaseName="athletics.db" onInit={initializeDatabase}>
           <AuthProvider>
-          <StartConfigProvider>
-            <StatusBar translucent theme="light" backgroundColor="transparent"/>
-            <SafeAreaProvider>
-              <Layout />
-            </SafeAreaProvider>
-          </StartConfigProvider>
+            <RoomProvider>
+              <StartConfigProvider>
+                <StatusBar translucent theme="light" backgroundColor="transparent"/>
+                <SafeAreaProvider>
+                  <Layout />
+                </SafeAreaProvider>
+              </StartConfigProvider>
+            </RoomProvider>
           </AuthProvider>
         </SQLiteProvider>
       </QueryClientProvider>

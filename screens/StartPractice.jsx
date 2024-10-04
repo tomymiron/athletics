@@ -100,7 +100,7 @@ export default function StartPractice() {
                 </View>
               </View>
             </TouchableWithoutFeedback>
-            <TouchableWithoutFeedback>
+            <TouchableWithoutFeedback onPress={() => navigation.navigate("RoomsScreen")}>
               <View style={styles.athleticsLabsContainer}>
                 <Text style={styles.athleticsLabs}>Athletics <Text style={styles.labBolder}>Labs</Text></Text>
               </View>
