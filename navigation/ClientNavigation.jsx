@@ -1,4 +1,4 @@
-import { NewRoom, Rooms, StartPractice, StartPracticeConfig, StartPracticeProgress, StartPracticeRanking, StartPracticeRankingGlobal, StartPracticeRankingMonthly, StartPracticeStats } from "../screens";
+import { NewRoom, Room, RoomAdmin, Rooms, StartPractice, StartPracticeConfig, StartPracticeProgress, StartPracticeRanking, StartPracticeRankingGlobal, StartPracticeRankingMonthly, StartPracticeStats } from "../screens";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import React from "react";
 
@@ -50,6 +50,16 @@ export default function ClientNavigation() {
       <Stack.Screen
         name="NewRoomScreen"
         component={NewRoom}
+        options={{ animation: "slide_from_right" }}
+      />
+      <Stack.Screen
+        name="RoomScreen"
+        component={Room}
+        options={{ animation: "slide_from_right" }}
+      />
+      <Stack.Screen
+        name="AdminRoomScreen"
+        component={RoomAdmin}
         options={{ animation: "slide_from_right" }}
       />
     </Stack.Navigator>
